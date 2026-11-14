@@ -52,6 +52,16 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .spk{display:flex;gap:6px;margin-top:10px}.spk button{flex:1;min-width:0;padding:9px 6px;font-size:.88rem}
 .spk button.on{background:var(--ac);color:var(--card);border:1px solid var(--ac)}
 .interim{min-height:1.4em;margin-top:8px;color:var(--mut);font-style:italic;font-size:.9rem}
+.status{background:var(--soft);color:var(--ac);border-radius:12px;padding:10px 14px;font-size:.92rem;margin:4px 0 12px}
+.ctrl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ctrl .timer{font-size:1.5rem;margin:0;text-align:left;min-width:4.2ch}
+.ctrl button{flex:0 0 auto}
+.spkline{margin-top:12px;font-size:.88rem;color:var(--mut)}
+.livebox{margin-top:8px;padding:12px 14px;background:var(--soft);border-radius:14px;min-height:96px;max-height:220px;overflow:auto}
+.lastlines{font-size:1.05rem;line-height:1.55;white-space:pre-wrap}
+.livebox .interim{font-size:1.1rem;font-style:italic;color:var(--mut);margin:0;min-height:0}
+.meter{position:relative;height:8px;border-radius:99px;overflow:hidden;margin-top:10px;background:linear-gradient(90deg,#4caf50,#f2b632 60%,#d23b2e)}
+#meterfill{position:absolute;right:0;top:0;bottom:0;width:100%;background:var(--bd);transition:width .08s}
 details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 .timer{font:700 2.6rem/1.2 ui-monospace,Menlo,monospace;text-align:center;margin:4px 0 2px;letter-spacing:.04em}
 .seg{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft);border-radius:12px;padding:8px 12px;margin-top:8px;font-size:.88rem}
@@ -75,7 +85,7 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 <input id="key" type="password" placeholder="AIza..." autocomplete="off">
 <label for="msel">Model</label>
 <select id="msel"></select>
-<input id="model" value="gemini-2.5-flash" placeholder="ketik nama model, mis. gemini-2.5-flash" hidden style="margin-top:8px">
+<input id="model" value="gemini-3.8-flash" placeholder="ketik nama model, mis. gemini-3.8-flash" hidden style="margin-top:8px">
 <div class="mut" id="mdesc"></div>
 <div class="bar"><button id="mlist" class="sec">↻ Ambil daftar model terbaru dari Google</button></div>
 <div class="chk"><input type="checkbox" id="rem"><label for="rem">Ingat key di perangkat ini saja</label></div>
@@ -107,23 +117,29 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 
 <section class="card">
 <div class="step"><span>2</span>Rekam atau unggah audio</div>
-<div class="timer" id="timer">00:00</div>
-<div class="bar">
+<div class="status" id="mstat">Tekan Rekam untuk mulai.</div>
+<div class="ctrl">
 <button id="mic">🎙 Rekam</button>
-<button id="stop" class="sec" hidden>⏹ Selesai</button>
+<span class="timer" id="timer">00:00</span>
+<button id="pause" class="sec" hidden>⏸ Jeda</button>
 <button id="up" class="sec">📁 Unggah audio</button>
 </div>
 <input type="file" id="file" accept="audio/*" multiple hidden>
-<div class="chk"><input type="checkbox" id="live" checked><label for="live">Transkrip langsung saat merekam (tanpa Gemini)</label></div>
-<div class="mut">Mode langsung memakai pengenalan suara bawaan Chrome (audio diproses Google, tanpa kunci API) dan <b>tidak bisa membedakan pembicara</b>. Gunakan tombol di bawah untuk menandai siapa yang sedang bicara.</div>
+<div id="livepanel" hidden>
+<div class="spkline" id="spkline">Merekam: tanpa label pembicara</div>
 <div class="spk" id="spk" hidden>
 <button class="sec" data-s="Psikolog">Psikolog</button><button class="sec" data-s="Klien">Klien</button><button class="on" data-s="">Tanpa label</button>
 </div>
-<div class="interim" id="interim"></div>
+<div class="livebox" id="livebox"><div class="lastlines" id="lastlines"></div><div class="interim" id="interim"></div></div>
+<div class="meter"><div id="meterfill"></div></div>
+</div>
+<div class="chk"><input type="checkbox" id="live" checked><label for="live">Transkrip langsung saat merekam (tanpa Gemini)</label></div>
+<div class="mut">Mode langsung memakai pengenalan suara bawaan Chrome (audio diproses Google, tanpa kunci API) dan <b>tidak bisa membedakan pembicara</b>. Gunakan tombol di bawah untuk menandai siapa yang sedang bicara.</div>
 <div class="mut" id="ast">Rekaman otomatis berlanjut ke bagian baru saat mencapai batas ukuran. Layar dijaga menyala saat merekam; jangan kunci layar atau pindah aplikasi.</div>
 <div id="segs"></div>
 <div class="bar">
 <button id="tx" disabled>✨ Transkrip dengan Gemini (pisahkan suara)</button>
+<button id="dlaudio" class="sec" hidden>⬇ Unduh audio</button>
 <button id="wipe" class="sec" hidden>Hapus audio dari memori</button>
 </div>
 </section>
@@ -131,6 +147,8 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 <section class="card">
 <div class="step"><span>3</span>Transkrip (bisa diedit)</div>
 <textarea id="tr" placeholder="Hasil transkrip dengan label Psikolog / Klien muncul di sini."></textarea>
+<div class="bar"><button id="retx" class="sec" disabled>↻ Transkrip ulang dengan Gemini (pisahkan suara)</button></div>
+<div class="mut" id="retxnote">Transkrip ulang memerlukan audio yang masih ada di memori. Rekam atau unggah audio terlebih dulu.</div>
 <div class="bar">
 <button id="swap" class="sec">⇄ Tukar label Psikolog/Klien</button>
 <button id="sum">📝 Buat rangkuman</button>
@@ -215,12 +233,19 @@ function render() {
     d.appendChild(x); $('segs').appendChild(d);
   });
   const idle = state === 'idle';
-  $('mic').textContent = state === 'recording' ? '⏸ Jeda' : state === 'paused' ? '▶ Lanjutkan' : '🎙 Rekam';
-  $('mic').className = state === 'recording' ? 'rec' : '';
-  $('stop').hidden = idle;
+  $('mic').textContent = idle ? '🎙 Rekam' : '⏹ Berhenti';
+  $('mic').className = idle ? '' : 'rec';
+  $('pause').hidden = idle;
+  $('pause').textContent = state === 'paused' ? '▶ Lanjutkan' : '⏸ Jeda';
+  $('livepanel').hidden = idle;
+  $('livebox').hidden = !(hasSR() && $('live').checked);
+  $('spkline').textContent = (state === 'paused' ? 'Dijeda · ' : 'Merekam: ') + ($('spkline').dataset.spk || 'tanpa label pembicara');
   $('up').disabled = !idle;
   $('tx').disabled = !(idle && segments.length);
   $('wipe').hidden = !(idle && segments.length);
+  $('dlaudio').hidden = !(idle && segments.length);
+  $('retx').disabled = !(idle && segments.length);
+  $('retxnote').hidden = !(idle && !segments.length);
   $('spk').hidden = !(state !== 'idle' && hasSR() && $('live').checked);
 }
 
@@ -249,18 +274,24 @@ function startRecorder() {
 }
 
 function finishRecording() {
-  clearInterval(tick); tick = null; stopLive();
+  clearInterval(tick); tick = null; stopLive(); stopMeter(); $('mstat').textContent = 'Rekaman selesai.';
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; state = 'idle'; finishing = false; segSec = 0;
   unlockScreen();
   $('ast').textContent = segments.length + ' bagian audio siap ditranskripsi.';
 }
 
+function togglePause() {
+  if (state === 'recording') { mr.pause(); state = 'paused'; stopLive(); $('ast').textContent = 'Dijeda. Tekan Lanjutkan untuk meneruskan.'; render(); }
+  else if (state === 'paused') { mr.resume(); state = 'recording'; lastT = Date.now(); startLive(); $('ast').textContent = 'Merekam…'; lockScreen(); render(); }
+}
+function stopRecording() { if (!mr) return; stopLive(); finishing = true; if (mr.state !== 'inactive') mr.stop(); }
+$('pause').onclick = togglePause;
 $('mic').onclick = async () => {
-  if (state === 'recording') { mr.pause(); state = 'paused'; stopLive(); $('ast').textContent = 'Dijeda. Tekan Lanjutkan untuk meneruskan.'; render(); return; }
-  if (state === 'paused') { mr.resume(); state = 'recording'; lastT = Date.now(); startLive(); $('ast').textContent = 'Merekam…'; lockScreen(); render(); return; }
+  if (state !== 'idle') { stopRecording(); return; }
   try { stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true}}); }
-  catch (e) { $('ast').textContent = 'Izin mikrofon ditolak atau tidak tersedia.'; return; }
+  catch (e) { $('ast').textContent = 'Izin mikrofon ditolak atau tidak tersedia.'; $('mstat').textContent = '⚠️ Izin mikrofon ditolak atau tidak tersedia.'; return; }
+  startMeter(stream); $('mstat').textContent = '✓ Mikrofon siap dipakai.';
   state = 'recording'; finishing = false; rotating = false; lastT = Date.now();
   startRecorder(); lockScreen(); startLive();
   tick = setInterval(() => { const n = Date.now(); if (state === 'recording') segSec += (n - lastT) / 1000; lastT = n; $('timer').textContent = fmt(totalSec()); }, 500);
@@ -268,7 +299,6 @@ $('mic').onclick = async () => {
   render();
 };
 
-$('stop').onclick = () => { if (!mr) return; stopLive(); finishing = true; if (mr.state !== 'inactive') mr.stop(); };
 
 $('up').onclick = () => $('file').click();
 $('file').onchange = async e => {
@@ -303,7 +333,7 @@ async function gemini(parts) {
     body: JSON.stringify({contents: [{parts}], generationConfig: {temperature: 0.2}})
   });
   const j = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error((j.error && j.error.message) || ('Error ' + r.status));
+  if (!r.ok) { let m = (j.error && j.error.message) || ('Error ' + r.status); if (/no longer available|not found|deprecated/i.test(m)) m += ' → Ganti model di Pengaturan API (tekan "Ambil daftar model terbaru").'; throw new Error(m); }
   const c = j.candidates && j.candidates[0];
   const t = c && c.content && c.content.parts ? c.content.parts.map(p => p.text || '').join('') : '';
   if (!t) throw new Error('Tidak ada hasil dari model' + (c && c.finishReason ? ' (' + c.finishReason + ')' : '') + '.');
@@ -319,7 +349,7 @@ const shiftTime = (txt, off) => txt.replace(/\[(?:(\d+):)?(\d{1,2}):(\d{2})\]/g,
 
 $('tx').onclick = async () => {
   if ($('tr').value.trim() && !confirm('Transkrip yang ada akan diganti dengan hasil Gemini. Lanjutkan?')) return;
-  const b = $('tx'); b.disabled = true;
+  const b = $('tx'); b.disabled = true; $('retx').disabled = true;
   let all = '', off = 0;
   try {
     for (let i = 0; i < segments.length; i++) {
@@ -391,12 +421,12 @@ const waText = () => getText().split('\n').map(l => l.replace(LBL, (a, sp, lab, 
 
 const crcT = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
 const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = crcT[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
-function zip(files) {
+function zip(files, mime) {
   const enc = new TextEncoder(), parts = [], cd = []; let off = 0;
   const w16 = (a, v) => a.push(v & 255, (v >> 8) & 255);
   const w32 = (a, v) => a.push(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255);
   for (const f of files) {
-    const name = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data), h = [], c = [];
+    const name = enc.encode(f.name), data = typeof f.data === 'string' ? enc.encode(f.data) : f.data, crc = crc32(data), h = [], c = [];
     w32(h, 0x04034b50); w16(h, 20); w16(h, 0x0800); w16(h, 0); w16(h, 0); w16(h, 0x21); w32(h, crc); w32(h, data.length); w32(h, data.length); w16(h, name.length); w16(h, 0);
     parts.push(new Uint8Array(h), name, data);
     w32(c, 0x02014b50); w16(c, 20); w16(c, 20); w16(c, 0x0800); w16(c, 0); w16(c, 0); w16(c, 0x21); w32(c, crc); w32(c, data.length); w32(c, data.length); w16(c, name.length); w16(c, 0); w16(c, 0); w16(c, 0); w16(c, 0); w32(c, 0); w32(c, off);
@@ -405,7 +435,7 @@ function zip(files) {
   }
   let cds = 0; cd.forEach(x => cds += x.length);
   const e = []; w32(e, 0x06054b50); w16(e, 0); w16(e, 0); w16(e, files.length); w16(e, files.length); w32(e, cds); w32(e, off); w16(e, 0);
-  return new Blob([...parts, ...cd, new Uint8Array(e)], {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  return new Blob([...parts, ...cd, new Uint8Array(e)], {type: mime || 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
 }
 function buildDocx(text) {
   const rp = b => '<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>' + (b ? '<w:b/>' : '') + '<w:sz w:val="22"/></w:rPr>';
@@ -444,13 +474,13 @@ $('ktest').onclick = async () => {
   if (!model) { kshow('Isi nama model dulu.', 'err'); return; }
   const b = $('ktest'); b.disabled = true; kshow('Menguji koneksi…', 'wait');
   try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model), {headers: {'x-goog-api-key': key}});
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': key}, body: JSON.stringify({contents: [{parts: [{text: 'Balas dengan satu kata: OK'}]}], generationConfig: {maxOutputTokens: 64}})});
     const j = await r.json().catch(() => ({}));
     const m = (j.error && j.error.message) || '';
-    if (r.ok) { saveKey(); kshow('✅ Terhubung. Key valid dan model "' + model + '" tersedia.', 'ok'); }
+    if (r.ok) { saveKey(); kshow('✅ Terhubung. Key valid dan model "' + model + '" bisa dipakai.', 'ok'); }
     else if (r.status === 400 && /api key/i.test(m)) kshow('❌ Key tidak valid. Salin ulang key dari AI Studio dan pastikan tidak ada spasi.', 'err');
     else if (r.status === 403) kshow('❌ Key ditolak. Periksa apakah key dibatasi atau Generative Language API belum aktif di proyeknya. ' + m, 'err');
-    else if (r.status === 404) kshow('⚠️ Key valid, tetapi model "' + model + '" tidak ditemukan. Periksa nama model.', 'err');
+    else if (r.status === 404) kshow('⚠️ Model "' + model + '" tidak bisa dipakai: ' + m + ' Pilih model lain atau tekan "Ambil daftar model terbaru".', 'err');
     else if (r.status === 429) kshow('⚠️ Key valid, tetapi batas permintaan/kuota tercapai. Coba lagi nanti.', 'err');
     else kshow('❌ Gagal (' + r.status + '). ' + m, 'err');
   } catch (e) { kshow('❌ Tidak bisa menghubungi Google. Periksa koneksi internet.', 'err'); }
@@ -459,9 +489,9 @@ $('ktest').onclick = async () => {
 if (!$('key').value) document.querySelector('details').open = true;
 
 const PRESETS = [
-  ['gemini-2.5-flash', 'Gemini 2.5 Flash (disarankan)', 'Cepat dan hemat; cocok untuk transkrip dan rangkuman sehari-hari.'],
-  ['gemini-2.5-pro', 'Gemini 2.5 Pro', 'Paling teliti untuk audio sulit atau rangkuman rumit, tetapi lebih lambat dan lebih mahal.'],
-  ['gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite', 'Paling murah dan cepat; akurasi pemisahan suara bisa lebih rendah.']
+  ['gemini-3.8-flash', 'Gemini 3.8 Flash (disarankan)', 'Model Flash terbaru; cepat dan seimbang untuk transkrip dan rangkuman sehari-hari.'],
+  ['gemini-3.5-flash-lite', 'Gemini 3.5 Flash-Lite', 'Paling murah dan cepat; akurasi pemisahan suara bisa lebih rendah.'],
+  ['gemini-3.1-pro-preview', 'Gemini 3.1 Pro (preview)', 'Paling teliti untuk audio sulit atau rangkuman rumit, tetapi lebih lambat dan lebih mahal.']
 ];
 const DESC = {}; PRESETS.forEach(p => DESC[p[0]] = p[2]);
 function fillModels(list, want) {
@@ -483,7 +513,8 @@ function onModelSel() {
 $('msel').onchange = () => { onModelSel(); if ($('msel').value === '__custom') $('model').focus(); };
 $('model').addEventListener('input', () => { try { localStorage.setItem('gm', $('model').value.trim()); } catch (e) {} });
 let savedModel = ''; try { savedModel = localStorage.getItem('gm') || ''; } catch (e) {}
-fillModels(PRESETS, savedModel || 'gemini-2.5-flash');
+if (/^gemini-2\.5/.test(savedModel)) savedModel = '';
+fillModels(PRESETS, savedModel || 'gemini-3.8-flash');
 
 $('mlist').onclick = async () => {
   const key = $('key').value.trim();
@@ -520,6 +551,7 @@ function commitLive(t) {
     lastSpk = curSpk;
   } else { v += (v && !/\s$/.test(v) ? ' ' : '') + t; lastSpk = ''; }
   ta.value = v; ta.scrollTop = ta.scrollHeight;
+  $('lastlines').textContent = v.slice(-320); const lb = $('livebox'); lb.scrollTop = lb.scrollHeight;
 }
 function startLive() {
   if (!hasSR() || !$('live').checked || liveOn) return;
@@ -528,10 +560,20 @@ function startLive() {
   rec.onresult = e => {
     let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) commitLive(r[0].transcript); else interim += r[0].transcript; }
-    $('interim').textContent = interim;
+    $('interim').textContent = interim || '🎤 Mendengarkan…'; $('livebox').scrollTop = $('livebox').scrollHeight;
   };
+  rec.onstart = () => { $('interim').textContent = '🎤 Mendengarkan… teks muncul di kolom Transkrip setelah Anda berhenti bicara sejenak.'; };
   rec.onerror = ev => {
-    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { liveOn = false; $('interim').textContent = 'Transkrip langsung tidak diizinkan/tersedia. Audio tetap direkam; gunakan tombol Gemini setelah selesai.'; }
+    const m = {
+      'not-allowed': 'Izin mikrofon untuk transkrip langsung ditolak. Audio tetap direkam; pakai tombol Gemini setelah selesai.',
+      'service-not-allowed': 'Layanan suara Chrome tidak diizinkan. Audio tetap direkam; pakai tombol Gemini setelah selesai.',
+      'network': 'Layanan suara Chrome tidak bisa dihubungi (periksa internet). Audio tetap direkam; pakai tombol Gemini setelah selesai.',
+      'audio-capture': 'Mikrofon tidak terbaca oleh pengenalan suara. Audio tetap direkam.',
+      'no-speech': 'Belum terdengar suara. Bicara lebih dekat ke mikrofon.'
+    };
+    if (ev.error === 'aborted') return;
+    if (ev.error !== 'no-speech') liveOn = false;
+    $('interim').textContent = '⚠️ ' + (m[ev.error] || ('Kesalahan pengenalan suara: ' + ev.error));
   };
   rec.onend = () => { if (liveOn) { try { rec.start(); } catch (e) {} } };
   try { rec.start(); } catch (e) {}
@@ -540,9 +582,51 @@ function stopLive() { liveOn = false; try { rec && rec.stop(); } catch (e) {} re
 document.querySelectorAll('#spk button').forEach(b => b.onclick = () => {
   curSpk = b.dataset.s;
   document.querySelectorAll('#spk button').forEach(x => { x.className = x === b ? 'on' : 'sec'; });
+  $('spkline').dataset.spk = curSpk; render();
 });
 $('live').onchange = () => { if (state === 'recording') { $('live').checked ? startLive() : stopLive(); } render(); };
 if (!hasSR()) { $('live').checked = false; $('live').disabled = true; $('ast').textContent = 'Transkrip langsung tidak didukung browser ini (gunakan Chrome). Audio tetap bisa direkam dan ditranskripsi dengan Gemini.'; }
+render();
+
+// ===== Indikator level mikrofon =====
+let actx = null, raf = 0;
+function startMeter(st) {
+  try {
+    actx = new (window.AudioContext || window.webkitAudioContext)();
+    const an = actx.createAnalyser(); an.fftSize = 512; actx.createMediaStreamSource(st).connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    const loop = () => {
+      an.getByteTimeDomainData(buf); let m = 0;
+      for (let i = 0; i < buf.length; i++) { const d = Math.abs(buf[i] - 128) / 128; if (d > m) m = d; }
+      $('meterfill').style.width = (100 - Math.min(100, Math.round(m * 160))) + '%';
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+  } catch (e) {}
+}
+function stopMeter() { cancelAnimationFrame(raf); try { actx && actx.close(); } catch (e) {} actx = null; $('meterfill').style.width = '100%'; }
+render();
+
+// ===== Unduh audio & transkrip ulang =====
+const extOf = g => {
+  const n = g.blob.name && g.blob.name.includes('.') ? g.blob.name.split('.').pop().toLowerCase() : '';
+  if (n) return n;
+  const t = g.blob.type || '';
+  return /mp4|m4a|aac/.test(t) ? 'm4a' : /mpeg|mp3/.test(t) ? 'mp3' : /wav/.test(t) ? 'wav' : /ogg/.test(t) ? 'ogg' : /flac/.test(t) ? 'flac' : /webm/.test(t) ? 'webm' : 'audio';
+};
+$('dlaudio').onclick = async () => {
+  if (!segments.length) return;
+  try {
+    if (segments.length === 1) saveBlob(segments[0].blob, baseName() + '.' + extOf(segments[0]));
+    else {
+      const files = [];
+      for (let i = 0; i < segments.length; i++) files.push({name: 'bagian-' + (i + 1) + '.' + extOf(segments[i]), data: new Uint8Array(await segments[i].blob.arrayBuffer())});
+      saveBlob(zip(files, 'application/zip'), baseName() + '-audio.zip');
+    }
+    $('ast').textContent = 'Audio diunduh. Rekaman berisi percakapan klien: simpan di tempat aman dan hapus bila tidak diperlukan.';
+  } catch (e) { $('ast').textContent = 'Gagal mengunduh audio: ' + e.message; }
+};
+$('retx').onclick = () => $('tx').click();
 render();
 </script>
 </body>
