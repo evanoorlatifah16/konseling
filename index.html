@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#2f6f62">
+<title>Rangkuman Konseling</title>
+<style>
+:root{--h:185;--ac:hsl(var(--h) 62% 30%);--ac2:hsl(var(--h) 55% 42%);--soft:hsl(var(--h) 45% 94%);--bg:#f3f4f2;--card:#fff;--tx:#1d2624;--mut:#66736f;--bd:#e1e5e2;--rec:#d23b2e;--warn:#fff4d6;--warnt:#6b5310;--sh:0 1px 2px rgba(20,40,35,.06),0 6px 20px rgba(20,40,35,.06)}
+@media (prefers-color-scheme:dark){:root{--ac:hsl(var(--h) 55% 62%);--ac2:hsl(var(--h) 50% 48%);--soft:hsl(var(--h) 25% 17%);--bg:#101514;--card:#182120;--tx:#e8eeec;--mut:#95a5a0;--bd:#2a3633;--rec:#ef6a5d;--warn:#2f2810;--warnt:#e9cf86;--sh:0 1px 2px rgba(0,0,0,.4)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.hero{background:linear-gradient(135deg,hsl(var(--h) 62% 26%),hsl(calc(var(--h) + 25) 60% 38%));color:#fff;padding:22px 16px 56px;transition:background .3s}
+.hero-in{max-width:700px;margin:0 auto;display:flex;gap:12px;align-items:center}
+.logo{width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,.18);display:grid;place-items:center;font-size:24px}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;opacity:.8}
+h1{font-size:1.4rem;margin:0;line-height:1.2}
+.chips{max-width:700px;margin:16px auto 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.12);color:#fff;border-radius:999px;padding:8px 14px;font-size:.85rem;font-weight:600;cursor:pointer;white-space:nowrap}
+.chip.on{background:#fff;color:#1d2624;border-color:#fff}
+main{max-width:700px;margin:-38px auto 0;padding:0 14px 40px}
+.card{background:var(--card);border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:var(--sh);border:1px solid var(--bd)}
+.step{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:10px}
+.step span{width:26px;height:26px;border-radius:50%;background:var(--ac);color:var(--card);display:grid;place-items:center;font-size:.8rem}
+label{display:block;font-size:.8rem;color:var(--mut);margin:10px 0 4px;font-weight:600}
+input,select,textarea{width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:12px;padding:11px 12px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--ac2);box-shadow:0 0 0 3px var(--soft)}
+textarea{min-height:240px;resize:vertical;line-height:1.6}
+.row{display:flex;gap:10px}.row>div{flex:1;min-width:0}
+button{font:inherit;border:0;border-radius:12px;padding:12px 16px;background:var(--ac);color:var(--card);font-weight:700;cursor:pointer;transition:transform .05s,opacity .2s}
+button:active{transform:scale(.98)}
+button.sec{background:transparent;color:var(--tx);border:1px solid var(--bd)}
+button.rec{background:var(--rec);color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.bar>*{flex:1;min-width:130px}
+.note{background:var(--warn);color:var(--warnt);border-radius:12px;padding:10px 12px;font-size:.82rem;margin-bottom:14px}
+.mut{color:var(--mut);font-size:.82rem;margin-top:8px}
+.out{white-space:pre-wrap;word-wrap:break-word;background:var(--soft);border-radius:12px;padding:14px;line-height:1.65}
+.chk{display:flex;gap:8px;align-items:center;margin-top:8px}.chk input{width:auto}.chk label{margin:0}
+.paper{background:#fff;color:#111;border-radius:8px;padding:22px 20px;min-height:220px;white-space:pre-wrap;word-wrap:break-word;line-height:1.7;box-shadow:inset 0 0 0 1px #d8dcd9,0 4px 14px rgba(0,0,0,.08);outline:none}
+.paper:focus{box-shadow:inset 0 0 0 2px var(--ac2),0 4px 14px rgba(0,0,0,.08)}
+@media print{body *{visibility:hidden}#out,#out *{visibility:visible}#out{position:absolute;left:0;top:0;width:100%;box-shadow:none!important;padding:0}}
+.kres{margin-top:10px;padding:10px 12px;border-radius:12px;font-size:.88rem}
+.kres.ok{background:#e0f4e6;color:#14532d}.kres.err{background:#fde8e6;color:#8a2a21}.kres.wait{background:var(--soft);color:var(--mut)}
+@media (prefers-color-scheme:dark){.kres.ok{background:#173324;color:#a7e3bb}.kres.err{background:#3a1c19;color:#f3b4ad}}
+.guide{margin-top:12px;background:var(--soft);border-radius:12px;padding:10px 12px}
+.guide ol{margin:8px 0 6px;padding-left:20px;font-size:.88rem}.guide li{margin-bottom:6px}
+.guide a{color:var(--ac)}.guide code{background:var(--bg);padding:1px 5px;border-radius:5px}
+details summary{cursor:pointer;font-weight:700;color:var(--mut)}
+.timer{font:700 2.6rem/1.2 ui-monospace,Menlo,monospace;text-align:center;margin:4px 0 2px;letter-spacing:.04em}
+.seg{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft);border-radius:12px;padding:8px 12px;margin-top:8px;font-size:.88rem}
+.seg button{padding:6px 12px;min-width:0;flex:0 0 auto}
+.minor{background:#fde8e6;color:#8a2a21;border-radius:12px;padding:10px 12px;font-size:.82rem;margin-bottom:14px}
+@media (prefers-color-scheme:dark){.minor{background:#3a1c19;color:#f3b4ad}}
+</style>
+</head>
+<body>
+<header class="hero">
+<div class="hero-in"><div class="logo">🧠</div><div><div class="eyebrow">Asisten catatan sesi</div><h1>Rangkuman Konseling</h1></div></div>
+<div class="chips" id="chips"></div>
+</header>
+<main>
+<div class="note"><b>Privasi:</b> audio dikirim ke Google (Gemini API). Pakai API key dari proyek dengan <b>billing aktif</b>, karena sepengetahuan saya tier gratis dapat dipakai Google untuk meningkatkan produknya; cek ketentuan terbaru. Rekam hanya dengan persetujuan, dan gunakan kode klien, bukan nama.</div>
+<div class="minor" id="minor" hidden><b>Klien di bawah umur.</b> Pastikan ada persetujuan orang tua/wali untuk merekam, dan ikuti kebijakan sekolah tentang kerahasiaan konseling.</div>
+
+<section class="card">
+<details><summary>⚙️ Pengaturan API</summary>
+<label for="key">Gemini API key</label>
+<input id="key" type="password" placeholder="AIza..." autocomplete="off">
+<label for="msel">Model</label>
+<select id="msel"></select>
+<input id="model" value="gemini-2.5-flash" placeholder="ketik nama model, mis. gemini-2.5-flash" hidden style="margin-top:8px">
+<div class="mut" id="mdesc"></div>
+<div class="bar"><button id="mlist" class="sec">↻ Ambil daftar model terbaru dari Google</button></div>
+<div class="chk"><input type="checkbox" id="rem"><label for="rem">Ingat key di perangkat ini saja</label></div>
+<div class="bar"><button id="ktest" class="sec">🔌 Tes koneksi</button></div>
+<div class="kres" id="kres" hidden></div>
+<div class="mut">Key hanya tersimpan di browser perangkat ini. Jangan membagikan file ini setelah key tersimpan.</div>
+<details class="guide"><summary>📘 Cara mendapatkan API key</summary>
+<ol>
+<li>Buka <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> dan masuk dengan akun Google.</li>
+<li>Klik <b>Create API key</b>, lalu pilih proyek yang ada atau buat proyek baru.</li>
+<li>Salin key yang muncul (diawali <code>AIza</code>) dan tempel di kolom di atas.</li>
+<li><b>Aktifkan billing</b> pada proyek tersebut (lewat Google Cloud Console atau tautan upgrade di AI Studio), agar data tidak dipakai untuk peningkatan produk Google. Tes koneksi tidak bisa memastikan hal ini, jadi cek statusnya di AI Studio.</li>
+<li>Tekan <b>Tes koneksi</b>. Jika muncul tanda ✅, aplikasi siap dipakai.</li>
+</ol>
+<div class="mut">Tampilan Google bisa berubah sewaktu-waktu. Perlakukan key seperti kata sandi: jangan dibagikan atau dikirim lewat chat.</div>
+</details>
+</details>
+</section>
+
+<section class="card">
+<div class="step"><span>1</span>Info sesi</div>
+<div class="row">
+<div><label for="kode">Kode klien</label><input id="kode" placeholder="mis. K-017"></div>
+<div><label for="tgl">Tanggal</label><input id="tgl" type="date"></div>
+</div>
+<label for="fmt">Format catatan</label>
+<select id="fmt"><option>DAP</option><option>SOAP</option></select>
+</section>
+
+<section class="card">
+<div class="step"><span>2</span>Rekam atau unggah audio</div>
+<div class="timer" id="timer">00:00</div>
+<div class="bar">
+<button id="mic">🎙 Rekam</button>
+<button id="stop" class="sec" hidden>⏹ Selesai</button>
+<button id="up" class="sec">📁 Unggah audio</button>
+</div>
+<input type="file" id="file" accept="audio/*" multiple hidden>
+<div class="mut" id="ast">Rekaman otomatis berlanjut ke bagian baru saat mencapai batas ukuran. Layar dijaga menyala saat merekam; jangan kunci layar atau pindah aplikasi.</div>
+<div id="segs"></div>
+<div class="bar">
+<button id="tx" disabled>✨ Buat transkrip + pisahkan suara</button>
+<button id="wipe" class="sec" hidden>Hapus audio dari memori</button>
+</div>
+</section>
+
+<section class="card">
+<div class="step"><span>3</span>Transkrip (bisa diedit)</div>
+<textarea id="tr" placeholder="Hasil transkrip dengan label Psikolog / Klien muncul di sini."></textarea>
+<div class="bar">
+<button id="swap" class="sec">⇄ Tukar label Psikolog/Klien</button>
+<button id="sum">📝 Buat rangkuman</button>
+</div>
+<div class="mut" id="st"></div>
+</section>
+
+<section class="card" id="rc" hidden>
+<div class="step"><span>4</span>Pratinjau &amp; ekspor</div>
+<div class="mut" style="margin:0 0 10px">✏️ Klik langsung pada kertas di bawah untuk mengedit sebelum diekspor.</div>
+<div class="paper" id="out" contenteditable="true" spellcheck="true"></div>
+<div id="exp" hidden>
+<div class="bar">
+<button id="docx">📄 Word (.docx)</button>
+<button id="pdf">🧾 PDF</button>
+</div>
+<div class="bar">
+<button id="wa" class="sec">💬 Salin format WhatsApp</button>
+<button id="wasend" class="sec">Kirim via WhatsApp</button>
+</div>
+<div class="bar">
+<button id="cp" class="sec">Salin teks</button>
+<button id="dl" class="sec">Unduh .txt</button>
+</div>
+<div class="mut">PDF: di jendela cetak pilih <b>Simpan sebagai PDF</b>. Catatan konseling bersifat rahasia; kirim lewat WhatsApp hanya ke pihak yang berwenang dan tanpa nama lengkap klien.</div>
+</div>
+</section>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const INST = {
+  cmc:  {name: 'Cordelia Medical Center', short: 'CMC', h: 185, fmt: 'SOAP', minor: false, ctx: 'Layanan psikologi di rumah sakit. Gunakan bahasa klinis yang ringkas; klien dapat disebut pasien/klien.'},
+  ubl:  {name: 'Universitas Borneo Lestari', short: 'UBL', h: 135, fmt: 'DAP', minor: false, ctx: 'Layanan konseling mahasiswa. Perhatikan aspek akademik, adaptasi, relasi, keluarga, dan keuangan jika disebut.'},
+  sman: {name: 'SMAN 2 Banjarbaru', short: 'SMAN2', h: 265, fmt: 'DAP', minor: true, ctx: 'Konseling siswa SMA (remaja, di bawah umur). Perhatikan aspek sekolah, keluarga, teman sebaya, dan perkembangan remaja; tandai bila perlu melibatkan orang tua/wali atau guru BK.'},
+  lmmc: {name: 'Lambung Mangkurat Medical Center', short: 'LMMC', h: 28, fmt: 'SOAP', minor: false, ctx: 'Layanan psikologi di rumah sakit. Gunakan bahasa klinis yang ringkas; klien dapat disebut pasien/klien.'}
+};
+let curInst = 'cmc';
+try { const s = localStorage.getItem('inst'); if (INST[s]) curInst = s; } catch (e) {}
+
+function applyInst(id, setFmt) {
+  curInst = id; const i = INST[id];
+  document.documentElement.style.setProperty('--h', i.h);
+  $('minor').hidden = !i.minor;
+  if (setFmt) $('fmt').value = i.fmt;
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', c.dataset.id === id));
+  try { localStorage.setItem('inst', id); } catch (e) {}
+}
+Object.entries(INST).forEach(([id, i]) => {
+  const c = document.createElement('button'); c.className = 'chip'; c.dataset.id = id; c.textContent = i.name;
+  c.onclick = () => {
+    if (id === curInst) return;
+    if ((segments.length || $('tr').value.trim() || $('out').textContent.trim()) && state === 'idle') {
+      if (!confirm('Ganti instansi? Audio, transkrip, dan rangkuman saat ini akan dikosongkan agar data antar instansi tidak tercampur.')) return;
+      segments = []; $('tr').value = ''; $('out').textContent = ''; $('rc').hidden = true; $('kode').value = ''; render();
+    } else if (state !== 'idle') { alert('Selesaikan rekaman dulu sebelum mengganti instansi.'); return; }
+    applyInst(id, true);
+  };
+  $('chips').appendChild(c);
+});
+$('tgl').value = new Date().toISOString().slice(0, 10);
+const SEG_MAX = 12 * 1024 * 1024;   // otomatis pindah ke bagian baru
+const UP_MAX = 14 * 1024 * 1024;    // batas satu file untuk dikirim
+let segments = [], mr = null, stream = null, state = 'idle', rotating = false, finishing = false;
+let chunks = [], segBytes = 0, segSec = 0, wake = null, tick = null, lastT = 0;
+
+try { const k = localStorage.getItem('gk'); if (k) { $('key').value = k; $('rem').checked = true; } } catch (e) {}
+const saveKey = () => { try { $('rem').checked ? localStorage.setItem('gk', $('key').value.trim()) : localStorage.removeItem('gk'); } catch (e) {} };
+
+const fmt = s => { s = Math.round(s); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = n => String(n).padStart(2, '0'); return (h ? h + ':' : '') + p(m) + ':' + p(x); };
+const totalSec = () => segments.reduce((a, g) => a + g.dur, 0) + (state !== 'idle' ? segSec : 0);
+
+function render() {
+  $('timer').textContent = fmt(totalSec());
+  $('segs').innerHTML = '';
+  segments.forEach((g, i) => {
+    const d = document.createElement('div'); d.className = 'seg';
+    d.innerHTML = '<span>Bagian ' + (i + 1) + ' · ' + fmt(g.dur) + ' · ' + (g.blob.size / 1048576).toFixed(1) + ' MB</span>';
+    const x = document.createElement('button'); x.className = 'sec'; x.textContent = 'Hapus';
+    x.disabled = state !== 'idle';
+    x.onclick = () => { segments.splice(i, 1); render(); };
+    d.appendChild(x); $('segs').appendChild(d);
+  });
+  const idle = state === 'idle';
+  $('mic').textContent = state === 'recording' ? '⏸ Jeda' : state === 'paused' ? '▶ Lanjutkan' : '🎙 Rekam';
+  $('mic').className = state === 'recording' ? 'rec' : '';
+  $('stop').hidden = idle;
+  $('up').disabled = !idle;
+  $('tx').disabled = !(idle && segments.length);
+  $('wipe').hidden = !(idle && segments.length);
+}
+
+async function lockScreen() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+function unlockScreen() { try { wake && wake.release(); } catch (e) {} wake = null; }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && state === 'recording') lockScreen(); });
+
+function startRecorder() {
+  const types = ['audio/webm;codecs=opus', 'audio/mp4', 'audio/webm'];
+  const mt = types.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || '';
+  chunks = []; segBytes = 0; segSec = 0;
+  mr = new MediaRecorder(stream, mt ? {mimeType: mt, audioBitsPerSecond: 32000} : {});
+  mr.ondataavailable = e => {
+    if (!e.data.size) return;
+    chunks.push(e.data); segBytes += e.data.size;
+    if (segBytes >= SEG_MAX && state === 'recording' && !rotating) { rotating = true; mr.stop(); }
+  };
+  mr.onstop = () => {
+    const type = mr.mimeType || 'audio/webm';
+    if (chunks.length) segments.push({blob: new Blob(chunks, {type}), dur: segSec});
+    if (rotating && !finishing) { rotating = false; startRecorder(); $('ast').textContent = 'Batas ukuran tercapai, otomatis lanjut ke bagian ' + (segments.length + 1) + '.'; }
+    else { rotating = false; finishRecording(); }
+    render();
+  };
+  mr.start(1000);
+}
+
+function finishRecording() {
+  clearInterval(tick); tick = null;
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; state = 'idle'; finishing = false; segSec = 0;
+  unlockScreen();
+  $('ast').textContent = segments.length + ' bagian audio siap ditranskripsi.';
+}
+
+$('mic').onclick = async () => {
+  if (state === 'recording') { mr.pause(); state = 'paused'; $('ast').textContent = 'Dijeda. Tekan Lanjutkan untuk meneruskan.'; render(); return; }
+  if (state === 'paused') { mr.resume(); state = 'recording'; lastT = Date.now(); $('ast').textContent = 'Merekam…'; lockScreen(); render(); return; }
+  try { stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true}}); }
+  catch (e) { $('ast').textContent = 'Izin mikrofon ditolak atau tidak tersedia.'; return; }
+  state = 'recording'; finishing = false; rotating = false; lastT = Date.now();
+  startRecorder(); lockScreen();
+  tick = setInterval(() => { const n = Date.now(); if (state === 'recording') segSec += (n - lastT) / 1000; lastT = n; $('timer').textContent = fmt(totalSec()); }, 500);
+  $('ast').textContent = 'Merekam…';
+  render();
+};
+
+$('stop').onclick = () => { if (!mr) return; finishing = true; if (mr.state !== 'inactive') mr.stop(); };
+
+$('up').onclick = () => $('file').click();
+$('file').onchange = async e => {
+  for (const f of e.target.files) {
+    if (f.size > UP_MAX) { $('ast').textContent = f.name + ' terlalu besar (maks ~14 MB). Potong dulu menjadi beberapa file.'; continue; }
+    const dur = await new Promise(r => { const a = new Audio(); a.preload = 'metadata'; a.onloadedmetadata = () => r(isFinite(a.duration) ? a.duration : 0); a.onerror = () => r(0); a.src = URL.createObjectURL(f); });
+    segments.push({blob: f, dur});
+  }
+  e.target.value = ''; render();
+};
+
+$('wipe').onclick = () => { if (confirm('Hapus semua audio dari memori? Transkrip tidak ikut terhapus.')) { segments = []; $('ast').textContent = 'Audio dihapus dari memori.'; render(); } };
+window.addEventListener('beforeunload', e => { if (segments.length || $('tr').value.trim() || $('out').textContent.trim()) { e.preventDefault(); e.returnValue = ''; } });
+render();
+applyInst(curInst, true);
+
+const toB64 = b => new Promise((res, rej) => {
+  const r = new FileReader();
+  r.onload = () => res(String(r.result).split(',')[1]);
+  r.onerror = () => rej(new Error('Gagal membaca audio'));
+  r.readAsDataURL(b);
+});
+
+async function gemini(parts) {
+  const key = $('key').value.trim();
+  if (!key) throw new Error('Isi API key di Pengaturan API.');
+  saveKey();
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent($('model').value.trim()) + ':generateContent';
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'x-goog-api-key': key},
+    body: JSON.stringify({contents: [{parts}], generationConfig: {temperature: 0.2}})
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((j.error && j.error.message) || ('Error ' + r.status));
+  const c = j.candidates && j.candidates[0];
+  const t = c && c.content && c.content.parts ? c.content.parts.map(p => p.text || '').join('') : '';
+  if (!t) throw new Error('Tidak ada hasil dari model' + (c && c.finishReason ? ' (' + c.finishReason + ')' : '') + '.');
+  return t.trim();
+}
+
+const TX_PROMPT = `Transkripsikan rekaman sesi konseling psikologi ini dalam Bahasa Indonesia (kata daerah atau asing ditulis apa adanya).
+Ada dua pembicara. Identifikasi berdasarkan peran dalam percakapan: "Psikolog" adalah yang mengarahkan sesi, mengajukan pertanyaan eksplorasi, dan memberi refleksi atau intervensi; "Klien" adalah yang bercerita dan menjawab.
+Format keluaran: satu giliran bicara per baris, diawali "Psikolog:" atau "Klien:". Tambahkan penanda waktu [mm:ss] di awal setiap giliran, dihitung dari awal rekaman ini.
+Tulis persis yang diucapkan, tanpa merangkum atau menambah. Bagian yang tidak terdengar jelas ditulis [tidak jelas]. Jangan menulis nama asli jika disebut; ganti dengan [nama]. Keluarkan hanya transkrip.`;
+
+const shiftTime = (txt, off) => txt.replace(/\[(?:(\d+):)?(\d{1,2}):(\d{2})\]/g, (m, h, mi, se) => '[' + fmt((+h || 0) * 3600 + (+mi) * 60 + (+se) + off) + ']');
+
+$('tx').onclick = async () => {
+  const b = $('tx'); b.disabled = true;
+  let all = '', off = 0;
+  try {
+    for (let i = 0; i < segments.length; i++) {
+      b.textContent = 'Memproses bagian ' + (i + 1) + '/' + segments.length + '…';
+      $('st').textContent = 'Mengirim audio ke Gemini, mohon tunggu (bisa beberapa menit).';
+      const g = segments[i];
+      const data = await toB64(g.blob);
+      const mime = (g.blob.type || 'audio/webm').split(';')[0];
+      const parts = [{inline_data: {mime_type: mime, data}}];
+      let p = TX_PROMPT;
+      if (all) p += '\n\nIni lanjutan dari bagian sebelumnya. Pertahankan pelabelan pembicara yang konsisten. Akhir bagian sebelumnya (JANGAN ditranskripsikan ulang):\n' + all.split('\n').slice(-6).join('\n');
+      parts.push({text: p});
+      const t = shiftTime(await gemini(parts), off);
+      all += (all ? '\n' : '') + t;
+      $('tr').value = all;
+      off += g.dur;
+    }
+    $('st').textContent = 'Selesai. Periksa pembagian Psikolog/Klien; jika terbalik, tekan Tukar label.';
+  } catch (e) {
+    $('st').textContent = 'Gagal pada bagian ' + (all ? all.split('\n').length ? 'berikutnya' : '' : 'pertama') + ': ' + e.message + (/mime|format|unsupported/i.test(e.message) ? ' Coba unggah file mp3, m4a, atau wav.' : '') + ' Hasil yang sudah masuk tetap ada di kotak transkrip.';
+  }
+  b.textContent = 'Buat transkrip + pisahkan suara'; render();
+};
+
+$('swap').onclick = () => {
+  $('tr').value = $('tr').value.replace(/(^|\n)(\[[\d:]+\]\s*)?(Psikolog|Klien):/g, (m, a, t, w) => a + (t || '') + (w === 'Psikolog' ? 'Klien' : 'Psikolog') + ':');
+};
+
+function sumPrompt(fmt, kode, text) {
+  const s = fmt === 'SOAP'
+    ? 'S (Subjective): keluhan dan cerita klien\nO (Objective): observasi perilaku dan afek yang tersirat\nA (Assessment): analisis tema dan dinamika\nP (Plan): rencana intervensi dan sesi berikutnya'
+    : 'D (Data): hal utama yang dikemukakan klien dan observasi dalam sesi\nA (Assessment): analisis tema, emosi, dan dinamika\nP (Plan): intervensi yang dipakai, tugas, dan fokus sesi berikutnya';
+  return `Kamu asisten yang membantu psikolog menyusun catatan sesi konseling dalam Bahasa Indonesia.
+Dari transkrip berlabel Psikolog/Klien di bawah, buat rangkuman format ${fmt}:
+${s}
+
+Tambahkan: "Poin tindak lanjut" (maks. 3 butir) dan "Catatan risiko" HANYA jika ada indikasi risiko menyakiti diri/orang lain; jika tidak, tulis "Tidak ada indikasi risiko yang tersurat".
+Aturan: hanya gunakan isi transkrip, jangan menambah fakta atau diagnosis. Bedakan pernyataan klien dari intervensi psikolog. Tanpa markdown (#, **). Ringkas dan profesional.
+
+Instansi: ${INST[curInst].name}
+Konteks layanan: ${INST[curInst].ctx}
+Kode klien: ${kode || '-'}
+
+TRANSKRIP:
+${text}`;
+}
+
+$('sum').onclick = async () => {
+  const t = $('tr').value.trim();
+  if (t.length < 30) { $('st').textContent = 'Transkrip masih terlalu pendek.'; return; }
+  const b = $('sum'); b.disabled = true; b.textContent = 'Merangkum…';
+  $('rc').hidden = false; $('exp').hidden = true; $('out').textContent = 'Memproses…';
+  try {
+    const r = await gemini([{text: sumPrompt($('fmt').value, $('kode').value.trim(), t)}]);
+    setPaper('INSTANSI: ' + INST[curInst].name + '\nKODE KLIEN: ' + ($('kode').value.trim() || '-') + '\nTANGGAL: ' + $('tgl').value + '\nFORMAT: ' + $('fmt').value + '\n\n' + r); $('exp').hidden = false;
+  } catch (e) { $('out').textContent = 'Gagal: ' + e.message; }
+  b.disabled = false; b.textContent = 'Buat rangkuman';
+};
+
+// ===== Pratinjau & ekspor =====
+const LBL = /^(\s*)((?:[DSOAP] \([^)]*\))|Poin tindak lanjut|Catatan risiko|INSTANSI|KODE KLIEN|TANGGAL|FORMAT)(:?)/i;
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const xesc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const toHTML = t => t.split('\n').map(l => { const m = l.match(LBL); return m ? esc(m[1]) + '<b>' + esc(m[2] + m[3]) + '</b>' + esc(l.slice(m[0].length)) : esc(l); }).join('\n');
+const getText = () => $('out').innerText.replace(/\n{3,}/g, '\n\n').trim();
+const setPaper = t => { $('out').innerHTML = toHTML(t); };
+const baseName = () => INST[curInst].short + '-' + ($('kode').value.trim() || 'sesi').replace(/[^\w-]/g, '') + '-' + $('tgl').value;
+const waText = () => getText().split('\n').map(l => l.replace(LBL, (a, sp, lab, col) => sp + '*' + lab + '*' + col)).join('\n');
+
+const crcT = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+const crc32 = u => { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = crcT[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+function zip(files) {
+  const enc = new TextEncoder(), parts = [], cd = []; let off = 0;
+  const w16 = (a, v) => a.push(v & 255, (v >> 8) & 255);
+  const w32 = (a, v) => a.push(v & 255, (v >> 8) & 255, (v >> 16) & 255, (v >> 24) & 255);
+  for (const f of files) {
+    const name = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data), h = [], c = [];
+    w32(h, 0x04034b50); w16(h, 20); w16(h, 0x0800); w16(h, 0); w16(h, 0); w16(h, 0x21); w32(h, crc); w32(h, data.length); w32(h, data.length); w16(h, name.length); w16(h, 0);
+    parts.push(new Uint8Array(h), name, data);
+    w32(c, 0x02014b50); w16(c, 20); w16(c, 20); w16(c, 0x0800); w16(c, 0); w16(c, 0); w16(c, 0x21); w32(c, crc); w32(c, data.length); w32(c, data.length); w16(c, name.length); w16(c, 0); w16(c, 0); w16(c, 0); w16(c, 0); w32(c, 0); w32(c, off);
+    cd.push(new Uint8Array(c), name);
+    off += h.length + name.length + data.length;
+  }
+  let cds = 0; cd.forEach(x => cds += x.length);
+  const e = []; w32(e, 0x06054b50); w16(e, 0); w16(e, 0); w16(e, files.length); w16(e, files.length); w32(e, cds); w32(e, off); w16(e, 0);
+  return new Blob([...parts, ...cd, new Uint8Array(e)], {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+}
+function buildDocx(text) {
+  const rp = b => '<w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/>' + (b ? '<w:b/>' : '') + '<w:sz w:val="22"/></w:rPr>';
+  const run = (t, b) => t ? '<w:r>' + rp(b) + '<w:t xml:space="preserve">' + xesc(t) + '</w:t></w:r>' : '';
+  const para = inner => '<w:p><w:pPr><w:spacing w:after="100"/></w:pPr>' + inner + '</w:p>';
+  let body = '<w:p><w:pPr><w:spacing w:after="200"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri" w:cs="Calibri"/><w:b/><w:sz w:val="32"/></w:rPr><w:t>Catatan Sesi Konseling</w:t></w:r></w:p>';
+  text.split('\n').forEach(l => { const m = l.match(LBL); body += para(m ? run(m[1] + m[2] + m[3], true) + run(l.slice(m[0].length), false) : run(l, false)); });
+  const NS = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  return zip([
+    {name: '[Content_Types].xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'},
+    {name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'},
+    {name: 'word/document.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ' + NS + '><w:body>' + body + '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>'}
+  ]);
+}
+function saveBlob(blob, name) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+const flash = (id, txt, back) => { $(id).textContent = txt; setTimeout(() => $(id).textContent = back, 2000); };
+async function copyText(t, id, back) {
+  try { await navigator.clipboard.writeText(t); flash(id, 'Tersalin ✓', back); }
+  catch (e) { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); flash(id, 'Tersalin ✓', back); } catch (e2) { flash(id, 'Gagal menyalin', back); } ta.remove(); }
+}
+
+$('cp').onclick = () => copyText(getText(), 'cp', 'Salin teks');
+$('wa').onclick = () => copyText(waText(), 'wa', '💬 Salin format WhatsApp');
+$('wasend').onclick = () => window.open('https://wa.me/?text=' + encodeURIComponent(waText()), '_blank');
+$('dl').onclick = () => saveBlob(new Blob([getText()], {type: 'text/plain'}), baseName() + '.txt');
+$('docx').onclick = () => saveBlob(buildDocx(getText()), baseName() + '.docx');
+$('pdf').onclick = () => { const t = document.title; document.title = baseName(); window.print(); setTimeout(() => document.title = t, 1000); };
+
+function kshow(msg, cls) { const k = $('kres'); k.hidden = false; k.className = 'kres ' + cls; k.textContent = msg; }
+$('ktest').onclick = async () => {
+  const key = $('key').value.trim(), model = $('model').value.trim();
+  if (!key) { kshow('Isi API key dulu.', 'err'); return; }
+  if (!model) { kshow('Isi nama model dulu.', 'err'); return; }
+  const b = $('ktest'); b.disabled = true; kshow('Menguji koneksi…', 'wait');
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model), {headers: {'x-goog-api-key': key}});
+    const j = await r.json().catch(() => ({}));
+    const m = (j.error && j.error.message) || '';
+    if (r.ok) { saveKey(); kshow('✅ Terhubung. Key valid dan model "' + model + '" tersedia.', 'ok'); }
+    else if (r.status === 400 && /api key/i.test(m)) kshow('❌ Key tidak valid. Salin ulang key dari AI Studio dan pastikan tidak ada spasi.', 'err');
+    else if (r.status === 403) kshow('❌ Key ditolak. Periksa apakah key dibatasi atau Generative Language API belum aktif di proyeknya. ' + m, 'err');
+    else if (r.status === 404) kshow('⚠️ Key valid, tetapi model "' + model + '" tidak ditemukan. Periksa nama model.', 'err');
+    else if (r.status === 429) kshow('⚠️ Key valid, tetapi batas permintaan/kuota tercapai. Coba lagi nanti.', 'err');
+    else kshow('❌ Gagal (' + r.status + '). ' + m, 'err');
+  } catch (e) { kshow('❌ Tidak bisa menghubungi Google. Periksa koneksi internet.', 'err'); }
+  b.disabled = false;
+};
+if (!$('key').value) document.querySelector('details').open = true;
+
+const PRESETS = [
+  ['gemini-2.5-flash', 'Gemini 2.5 Flash (disarankan)', 'Cepat dan hemat; cocok untuk transkrip dan rangkuman sehari-hari.'],
+  ['gemini-2.5-pro', 'Gemini 2.5 Pro', 'Paling teliti untuk audio sulit atau rangkuman rumit, tetapi lebih lambat dan lebih mahal.'],
+  ['gemini-2.5-flash-lite', 'Gemini 2.5 Flash-Lite', 'Paling murah dan cepat; akurasi pemisahan suara bisa lebih rendah.']
+];
+const DESC = {}; PRESETS.forEach(p => DESC[p[0]] = p[2]);
+function fillModels(list, want) {
+  const sel = $('msel'); sel.innerHTML = '';
+  list.forEach(([id, label]) => { const o = document.createElement('option'); o.value = id; o.textContent = label; sel.appendChild(o); });
+  const c = document.createElement('option'); c.value = '__custom'; c.textContent = 'Lainnya (ketik manual)…'; sel.appendChild(c);
+  if (want && list.some(x => x[0] === want)) sel.value = want;
+  else if (want) { sel.value = '__custom'; $('model').value = want; }
+  else sel.value = list[0][0];
+  onModelSel();
+}
+function onModelSel() {
+  const v = $('msel').value, custom = v === '__custom';
+  $('model').hidden = !custom;
+  if (!custom) $('model').value = v;
+  $('mdesc').textContent = custom ? 'Ketik nama model persis seperti di Google AI Studio.' : (DESC[v] || '');
+  try { localStorage.setItem('gm', $('model').value.trim()); } catch (e) {}
+}
+$('msel').onchange = () => { onModelSel(); if ($('msel').value === '__custom') $('model').focus(); };
+$('model').addEventListener('input', () => { try { localStorage.setItem('gm', $('model').value.trim()); } catch (e) {} });
+let savedModel = ''; try { savedModel = localStorage.getItem('gm') || ''; } catch (e) {}
+fillModels(PRESETS, savedModel || 'gemini-2.5-flash');
+
+$('mlist').onclick = async () => {
+  const key = $('key').value.trim();
+  if (!key) { kshow('Isi API key dulu untuk mengambil daftar model.', 'err'); return; }
+  const b = $('mlist'); b.disabled = true; kshow('Mengambil daftar model…', 'wait');
+  try {
+    let list = [], tok = '';
+    for (let i = 0; i < 3; i++) {
+      const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=100' + (tok ? '&pageToken=' + encodeURIComponent(tok) : ''), {headers: {'x-goog-api-key': key}});
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error((j.error && j.error.message) || ('Error ' + r.status));
+      list = list.concat(j.models || []); tok = j.nextPageToken || ''; if (!tok) break;
+    }
+    const items = list
+      .filter(m => (m.supportedGenerationMethods || []).includes('generateContent') && /gemini/i.test(m.name) && !/embedding|tts|image|live|imagen|audio-generation|robotics|computer-use/i.test(m.name))
+      .map(m => [m.name.replace(/^models\//, ''), (m.displayName || m.name.replace(/^models\//, '')) + ' (' + m.name.replace(/^models\//, '') + ')'])
+      .sort((a, b) => a[0].localeCompare(b[0]));
+    if (!items.length) throw new Error('Tidak ada model yang cocok ditemukan.');
+    fillModels(items, $('model').value.trim());
+    kshow('✅ ' + items.length + ' model tersedia untuk key ini. Pilih dari daftar di atas.', 'ok');
+  } catch (e) { kshow('❌ Gagal mengambil daftar: ' + e.message, 'err'); }
+  b.disabled = false;
+};
+</script>
+</body>
+</html>
