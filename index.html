@@ -211,7 +211,8 @@ Object.entries(INST).forEach(([id, i]) => {
 });
 $('tgl').value = new Date().toISOString().slice(0, 10);
 const SEG_MAX = 12 * 1024 * 1024;   // otomatis pindah ke bagian baru
-const UP_MAX = 14 * 1024 * 1024;    // batas satu file untuk dikirim
+const INLINE_MAX = 14 * 1024 * 1024; // di bawah ini dikirim langsung; di atasnya lewat Files API
+const UP_MAX = 100 * 1024 * 1024;   // batas satu file unggahan
 let segments = [], mr = null, stream = null, state = 'idle', rotating = false, finishing = false;
 let chunks = [], segBytes = 0, segSec = 0, wake = null, tick = null, lastT = 0;
 
@@ -303,7 +304,7 @@ $('mic').onclick = async () => {
 $('up').onclick = () => $('file').click();
 $('file').onchange = async e => {
   for (const f of e.target.files) {
-    if (f.size > UP_MAX) { $('ast').textContent = f.name + ' terlalu besar (maks ~14 MB). Potong dulu menjadi beberapa file.'; continue; }
+    if (f.size > UP_MAX) { $('ast').textContent = f.name + ' terlalu besar (maks 100 MB). Potong dulu menjadi beberapa file.'; continue; }
     const dur = await new Promise(r => { const a = new Audio(); a.preload = 'metadata'; a.onloadedmetadata = () => r(isFinite(a.duration) ? a.duration : 0); a.onerror = () => r(0); a.src = URL.createObjectURL(f); });
     segments.push({blob: f, dur});
   }
@@ -356,13 +357,21 @@ $('tx').onclick = async () => {
       b.textContent = 'Memproses bagian ' + (i + 1) + '/' + segments.length + '…';
       $('st').textContent = 'Mengirim audio ke Gemini, mohon tunggu (bisa beberapa menit).';
       const g = segments[i];
-      const data = await toB64(g.blob);
-      const mime = (g.blob.type || 'audio/webm').split(';')[0];
-      const parts = [{inline_data: {mime_type: mime, data}}];
+      const mime = mimeOf(g);
+      let uploaded = null;
+      const parts = [];
+      if (g.blob.size > INLINE_MAX) {
+        $('st').textContent = 'Mengunggah audio besar ke Google (0%)…';
+        uploaded = await uploadFile(g.blob, mime, pct => { $('st').textContent = 'Mengunggah audio besar ke Google (' + pct + '%)…'; });
+        parts.push({file_data: {mime_type: mime, file_uri: uploaded.uri}});
+        $('st').textContent = 'Gemini sedang menulis transkrip, mohon tunggu (file besar bisa memakan waktu beberapa menit).';
+      } else parts.push({inline_data: {mime_type: mime, data: await toB64(g.blob)}});
       let p = TX_PROMPT;
       if (all) p += '\n\nIni lanjutan dari bagian sebelumnya. Pertahankan pelabelan pembicara yang konsisten. Akhir bagian sebelumnya (JANGAN ditranskripsikan ulang):\n' + all.split('\n').slice(-6).join('\n');
       parts.push({text: p});
-      const t = shiftTime(await gemini(parts), off);
+      let t;
+      try { t = shiftTime(await gemini(parts), off); }
+      finally { if (uploaded) deleteFile(uploaded.name); }
       all += (all ? '\n' : '') + t;
       $('tr').value = all;
       off += g.dur;
@@ -628,6 +637,47 @@ $('dlaudio').onclick = async () => {
 };
 $('retx').onclick = () => $('tx').click();
 render();
+
+// ===== Files API (audio > 14 MB) =====
+const API = 'https://generativelanguage.googleapis.com';
+function mimeOf(g) {
+  let t = (g.blob.type || '').split(';')[0].toLowerCase();
+  if (t === 'audio/x-m4a' || t === 'audio/m4a') t = 'audio/mp4';
+  if (t) return t;
+  const n = (g.blob.name || '').split('.').pop().toLowerCase();
+  return {mp3: 'audio/mpeg', m4a: 'audio/mp4', wav: 'audio/wav', ogg: 'audio/ogg', flac: 'audio/flac', aac: 'audio/aac', webm: 'audio/webm'}[n] || 'audio/webm';
+}
+async function uploadFile(blob, mime, onPct) {
+  const key = $('key').value.trim();
+  const start = await fetch(API + '/upload/v1beta/files', {
+    method: 'POST',
+    headers: {'x-goog-api-key': key, 'X-Goog-Upload-Protocol': 'resumable', 'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': String(blob.size), 'X-Goog-Upload-Header-Content-Type': mime, 'Content-Type': 'application/json'},
+    body: JSON.stringify({file: {display_name: 'sesi-' + Date.now()}})
+  });
+  if (!start.ok) { const j = await start.json().catch(() => ({})); throw new Error((j.error && j.error.message) || ('Gagal memulai unggahan (' + start.status + ')')); }
+  const url = start.headers.get('x-goog-upload-url');
+  if (!url) throw new Error('Browser tidak bisa membaca alamat unggahan dari Google. Potong audio menjadi file di bawah 14 MB, lalu coba lagi.');
+  const info = await new Promise((res, rej) => {
+    const x = new XMLHttpRequest(); x.open('POST', url);
+    x.setRequestHeader('X-Goog-Upload-Offset', '0'); x.setRequestHeader('X-Goog-Upload-Command', 'upload, finalize');
+    x.upload.onprogress = e => { if (e.lengthComputable && onPct) onPct(Math.round(e.loaded / e.total * 100)); };
+    x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch (e) {} x.status < 300 && j.file ? res(j.file) : rej(new Error((j.error && j.error.message) || ('Unggahan gagal (' + x.status + ')'))); };
+    x.onerror = () => rej(new Error('Unggahan terputus. Periksa koneksi internet.'));
+    x.send(blob);
+  });
+  let f = info;
+  for (let i = 0; i < 60 && f.state && f.state !== 'ACTIVE'; i++) {
+    if (f.state === 'FAILED') throw new Error('Google gagal memproses file audio ini.');
+    await new Promise(r => setTimeout(r, 2000));
+    const r = await fetch(API + '/v1beta/' + f.name, {headers: {'x-goog-api-key': key}});
+    f = await r.json();
+  }
+  return f;
+}
+function deleteFile(name) {
+  fetch(API + '/v1beta/' + name, {method: 'DELETE', headers: {'x-goog-api-key': $('key').value.trim()}}).catch(() => {});
+}
 </script>
 </body>
 </html>
