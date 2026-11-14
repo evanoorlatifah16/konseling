@@ -43,7 +43,7 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .paper{background:#fff;color:#111;border-radius:8px;padding:22px 20px;min-height:220px;white-space:pre-wrap;word-wrap:break-word;line-height:1.7;box-shadow:inset 0 0 0 1px #d8dcd9,0 4px 14px rgba(0,0,0,.08);outline:none}
 .paper:focus{box-shadow:inset 0 0 0 2px var(--ac2),0 4px 14px rgba(0,0,0,.08)}
 @media print{body *{visibility:hidden}#out,#out *{visibility:visible}#out{position:absolute;left:0;top:0;width:100%;box-shadow:none!important;padding:0}}
-.kres{margin-top:10px;padding:10px 12px;border-radius:12px;font-size:.88rem}
+.kres{white-space:pre-line;margin-top:10px;padding:10px 12px;border-radius:12px;font-size:.88rem}
 .kres.ok{background:#e0f4e6;color:#14532d}.kres.err{background:#fde8e6;color:#8a2a21}.kres.wait{background:var(--soft);color:var(--mut)}
 @media (prefers-color-scheme:dark){.kres.ok{background:#173324;color:#a7e3bb}.kres.err{background:#3a1c19;color:#f3b4ad}}
 .guide{margin-top:12px;background:var(--soft);border-radius:12px;padding:10px 12px}
@@ -62,6 +62,10 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .livebox .interim{font-size:1.1rem;font-style:italic;color:var(--mut);margin:0;min-height:0}
 .meter{position:relative;height:8px;border-radius:99px;overflow:hidden;margin-top:10px;background:linear-gradient(90deg,#4caf50,#f2b632 60%,#d23b2e)}
 #meterfill{position:absolute;right:0;top:0;bottom:0;width:100%;background:var(--bd);transition:width .08s}
+.prog{height:8px;border-radius:99px;background:var(--bd);overflow:hidden;margin-top:8px}
+#progfill{height:100%;width:0;background:var(--ac);border-radius:99px;transition:width .4s}
+#progfill.ind{animation:slide 1.2s ease-in-out infinite alternate}
+@keyframes slide{from{margin-left:0}to{margin-left:65%}}
 details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 .timer{font:700 2.6rem/1.2 ui-monospace,Menlo,monospace;text-align:center;margin:4px 0 2px;letter-spacing:.04em}
 .seg{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft);border-radius:12px;padding:8px 12px;margin-top:8px;font-size:.88rem}
@@ -154,6 +158,8 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 <button id="sum">📝 Buat rangkuman</button>
 </div>
 <div class="mut" id="st"></div>
+<div class="prog" id="prog" hidden><div id="progfill"></div></div>
+<button id="cancel" class="sec" hidden style="margin-top:10px;width:100%">✖ Batalkan transkrip</button>
 </section>
 
 <section class="card" id="rc" hidden>
@@ -348,40 +354,107 @@ Tulis persis yang diucapkan, tanpa merangkum atau menambah. Bagian yang tidak te
 
 const shiftTime = (txt, off) => txt.replace(/\[(?:(\d+):)?(\d{1,2}):(\d{2})\]/g, (m, h, mi, se) => '[' + fmt((+h || 0) * 3600 + (+mi) * 60 + (+se) + off) + ']');
 
+const TS_RE = /\[(?:(\d+):)?(\d{1,2}):(\d{2})\]/g;
+function setProg(pct) {
+  const f = $('progfill');
+  if (pct == null) { f.className = 'ind'; f.style.width = '35%'; }
+  else { f.className = ''; f.style.width = pct + '%'; }
+}
 $('tx').onclick = async () => {
   if ($('tr').value.trim() && !confirm('Transkrip yang ada akan diganti dengan hasil Gemini. Lanjutkan?')) return;
   const b = $('tx'); b.disabled = true; $('retx').disabled = true;
-  let all = '', off = 0;
+  $('prog').hidden = false; $('cancel').hidden = false; setProg(0); lockScreen();
+  const totalDur = segments.reduce((a, g) => a + g.dur, 0);
+  const t0 = Date.now();
+  let all = '', off = 0, label = '', phase = 'gen', lastTs = 0, started = false, truncated = false;
+  const upd = () => {
+    if (phase === 'upload') return;
+    const el = fmt((Date.now() - t0) / 1000);
+    if (!started) { $('st').textContent = label + ' · Gemini sedang menganalisis audio… (berjalan ' + el + '). Untuk audio panjang, menunggu teks pertama itu normal.'; setProg(null); }
+    else {
+      const abs = off + lastTs, pct = totalDur > 0 ? Math.min(99, Math.round(abs / totalDur * 100)) : null;
+      $('st').textContent = label + ' · transkrip sampai [' + fmt(abs) + ']' + (totalDur > 0 ? ' dari ' + fmt(totalDur) + ' (' + pct + '%)' : '') + ' · berjalan ' + el;
+      setProg(pct);
+    }
+  };
+  const iv = setInterval(upd, 1000);
+  ctrl = new AbortController();
   try {
     for (let i = 0; i < segments.length; i++) {
-      b.textContent = 'Memproses bagian ' + (i + 1) + '/' + segments.length + '…';
-      $('st').textContent = 'Mengirim audio ke Gemini, mohon tunggu (bisa beberapa menit).';
-      const g = segments[i];
-      const mime = mimeOf(g);
+      label = 'Bagian ' + (i + 1) + '/' + segments.length; started = false; lastTs = 0; phase = 'gen';
+      b.textContent = 'Memproses ' + label + '…';
+      const g = segments[i], mime = mimeOf(g);
       let uploaded = null;
       const parts = [];
       if (g.blob.size > INLINE_MAX) {
-        $('st').textContent = 'Mengunggah audio besar ke Google (0%)…';
-        uploaded = await uploadFile(g.blob, mime, pct => { $('st').textContent = 'Mengunggah audio besar ke Google (' + pct + '%)…'; });
+        phase = 'upload';
+        $('st').textContent = label + ' · Mengunggah audio ke Google (0%)…';
+        uploaded = await uploadFile(g.blob, mime, pct => { $('st').textContent = label + ' · Mengunggah audio ke Google (' + pct + '%)…'; setProg(pct); });
         parts.push({file_data: {mime_type: mime, file_uri: uploaded.uri}});
-        $('st').textContent = 'Gemini sedang menulis transkrip, mohon tunggu (file besar bisa memakan waktu beberapa menit).';
+        phase = 'gen';
       } else parts.push({inline_data: {mime_type: mime, data: await toB64(g.blob)}});
       let p = TX_PROMPT;
       if (all) p += '\n\nIni lanjutan dari bagian sebelumnya. Pertahankan pelabelan pembicara yang konsisten. Akhir bagian sebelumnya (JANGAN ditranskripsikan ulang):\n' + all.split('\n').slice(-6).join('\n');
       parts.push({text: p});
       let t;
-      try { t = shiftTime(await gemini(parts), off); }
-      finally { if (uploaded) deleteFile(uploaded.name); }
-      all += (all ? '\n' : '') + t;
-      $('tr').value = all;
+      try {
+        t = shiftTime(await geminiStream(parts, txt => {
+          started = true;
+          const ms = [...txt.matchAll(TS_RE)];
+          if (ms.length) { const m = ms[ms.length - 1]; lastTs = (+m[1] || 0) * 3600 + (+m[2]) * 60 + (+m[3]); }
+          $('tr').value = all + (all ? '\n' : '') + shiftTime(txt, off); $('tr').scrollTop = $('tr').scrollHeight;
+          upd();
+        }, ctrl.signal), off);
+      } finally { if (uploaded) deleteFile(uploaded.name); }
+      if (lastFinish === 'MAX_TOKENS') truncated = true;
+      all += (all ? '\n' : '') + t; $('tr').value = all;
       off += g.dur;
     }
-    $('st').textContent = 'Selesai. Periksa pembagian Psikolog/Klien; jika terbalik, tekan Tukar label.';
+    setProg(100);
+    $('st').textContent = 'Selesai dalam ' + fmt((Date.now() - t0) / 1000) + '. ' + (truncated ? '⚠️ Transkrip mungkin terpotong karena terlalu panjang; periksa bagian akhirnya. ' : '') + 'Periksa pembagian Psikolog/Klien; jika terbalik, tekan Tukar label.';
   } catch (e) {
-    $('st').textContent = 'Gagal pada bagian ' + (all ? all.split('\n').length ? 'berikutnya' : '' : 'pertama') + ': ' + e.message + (/mime|format|unsupported/i.test(e.message) ? ' Coba unggah file mp3, m4a, atau wav.' : '') + ' Hasil yang sudah masuk tetap ada di kotak transkrip.';
+    if (e.name === 'AbortError') $('st').textContent = 'Dibatalkan. Hasil sebagian tetap ada di kotak transkrip.';
+    else $('st').textContent = 'Gagal: ' + e.message + (/mime|format|unsupported/i.test(e.message) ? ' Coba unggah file mp3, m4a, atau wav.' : '') + ' Hasil yang sudah masuk tetap ada di kotak transkrip.';
   }
+  clearInterval(iv); ctrl = null; unlockScreen();
+  $('prog').hidden = true; $('cancel').hidden = true;
   b.textContent = '✨ Transkrip dengan Gemini (pisahkan suara)'; render();
 };
+$('cancel').onclick = () => { if (ctrl) ctrl.abort(); if (curXhr) curXhr.abort(); };
+
+let ctrl = null, curXhr = null, lastFinish = '';
+async function geminiStream(parts, onText, signal) {
+  const key = $('key').value.trim();
+  if (!key) throw new Error('Isi API key di Pengaturan API.');
+  saveKey();
+  const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent($('model').value.trim()) + ':streamGenerateContent?alt=sse';
+  const r = await fetch(url, {method: 'POST', signal, headers: {'Content-Type': 'application/json', 'x-goog-api-key': key}, body: JSON.stringify({contents: [{parts}], generationConfig: {temperature: 0.2}})});
+  if (!r.ok) {
+    const j = await r.json().catch(() => ({}));
+    let m = (j.error && j.error.message) || ('Error ' + r.status);
+    if (/no longer available|not found|deprecated/i.test(m)) m += ' → Ganti model di Pengaturan API (tekan "Ambil daftar model terbaru").';
+    throw new Error(m);
+  }
+  const rd = r.body.getReader(), dec = new TextDecoder();
+  let buf = '', text = '', fin = '';
+  for (;;) {
+    const {done, value} = await rd.read(); if (done) break;
+    buf += dec.decode(value, {stream: true});
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue;
+      const d = line.slice(5).trim(); if (!d || d === '[DONE]') continue;
+      let j; try { j = JSON.parse(d); } catch (e) { continue; }
+      if (j.error) throw new Error(j.error.message || 'Kesalahan dari Gemini.');
+      const c = j.candidates && j.candidates[0];
+      if (c) { if (c.content && c.content.parts) text += c.content.parts.map(p => p.text || '').join(''); if (c.finishReason) fin = c.finishReason; onText(text); }
+    }
+  }
+  lastFinish = fin;
+  if (!text.trim()) throw new Error('Tidak ada hasil dari model' + (fin ? ' (' + fin + ')' : '') + '.');
+  return text.trim();
+}
 
 $('swap').onclick = () => {
   $('tr').value = $('tr').value.replace(/(^|\n)(\[[\d:]+\]\s*)?(Psikolog|Klien):/g, (m, a, t, w) => a + (t || '') + (w === 'Psikolog' ? 'Klien' : 'Psikolog') + ':');
@@ -481,19 +554,31 @@ $('ktest').onclick = async () => {
   const key = $('key').value.trim(), model = $('model').value.trim();
   if (!key) { kshow('Isi API key dulu.', 'err'); return; }
   if (!model) { kshow('Isi nama model dulu.', 'err'); return; }
-  const b = $('ktest'); b.disabled = true; kshow('Menguji koneksi…', 'wait');
+  const b = $('ktest'); b.disabled = true;
+  const lines = [], show = cls => kshow(lines.join('\n'), cls), hdr = {'x-goog-api-key': key};
+  const msg = j => (j && j.error && j.error.message) || '';
   try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': key}, body: JSON.stringify({contents: [{parts: [{text: 'Balas dengan satu kata: OK'}]}], generationConfig: {maxOutputTokens: 64}})});
-    const j = await r.json().catch(() => ({}));
-    const m = (j.error && j.error.message) || '';
-    if (r.ok) { saveKey(); kshow('✅ Terhubung. Key valid dan model "' + model + '" bisa dipakai.', 'ok'); }
-    else if (r.status === 400 && /api key/i.test(m)) kshow('❌ Key tidak valid. Salin ulang key dari AI Studio dan pastikan tidak ada spasi.', 'err');
-    else if (r.status === 403) kshow('❌ Key ditolak. Periksa apakah key dibatasi atau Generative Language API belum aktif di proyeknya. ' + m, 'err');
-    else if (r.status === 404) kshow('⚠️ Model "' + model + '" tidak bisa dipakai: ' + m + ' Pilih model lain atau tekan "Ambil daftar model terbaru".', 'err');
-    else if (r.status === 429) kshow('⚠️ Key valid, tetapi batas permintaan/kuota tercapai. Coba lagi nanti.', 'err');
-    else kshow('❌ Gagal (' + r.status + '). ' + m, 'err');
-  } catch (e) { kshow('❌ Tidak bisa menghubungi Google. Periksa koneksi internet.', 'err'); }
-  b.disabled = false;
+    lines.push('⏳ 1/3 Menghubungi Google dan memeriksa key…'); show('wait');
+    let r, j;
+    try { r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?pageSize=1', {headers: hdr}); }
+    catch (e) { lines[0] = '❌ 1/3 Tidak bisa menghubungi Google (' + (e.message || e.name) + '). Periksa internet, VPN, atau ekstensi/pemblokir iklan yang memblokir googleapis.com.'; show('err'); return; }
+    j = await r.json().catch(() => ({}));
+    if (!r.ok) { lines[0] = '❌ 1/3 Key ditolak (' + r.status + '): ' + (msg(j) || 'tanpa pesan') + '\nSalin ulang key dari AI Studio tanpa spasi, dan pastikan proyeknya aktif.'; show('err'); return; }
+    lines[0] = '✅ 1/3 Koneksi ke Google berhasil dan key valid.';
+
+    lines.push('⏳ 2/3 Memeriksa model…'); show('wait');
+    r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model), {headers: hdr});
+    j = await r.json().catch(() => ({}));
+    lines[1] = r.ok ? '✅ 2/3 Model "' + model + '" ditemukan.' : '⚠️ 2/3 Model "' + model + '" tidak terdaftar (' + r.status + '): ' + (msg(j) || 'tanpa pesan') + '\nTekan "Ambil daftar model terbaru" lalu pilih model lain.';
+
+    lines.push('⏳ 3/3 Mencoba satu permintaan ke model…'); show('wait');
+    r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {method: 'POST', headers: {'Content-Type': 'application/json', 'x-goog-api-key': key}, body: JSON.stringify({contents: [{parts: [{text: 'Balas dengan satu kata: OK'}]}], generationConfig: {maxOutputTokens: 256}})});
+    j = await r.json().catch(() => ({}));
+    if (!r.ok) { lines[2] = '❌ 3/3 Permintaan ke model gagal (' + r.status + '): ' + (msg(j) || 'tanpa pesan') + (r.status === 429 ? '\nKuota/batas permintaan tercapai atau billing belum aktif.' : r.status === 404 ? '\nModel ini tidak bisa dipakai; pilih model lain.' : ''); show('err'); return; }
+    lines[2] = '✅ 3/3 Model merespons. Siap dipakai.';
+    saveKey(); show('ok');
+  } catch (e) { lines.push('❌ Kesalahan: ' + (e.message || e.name)); show('err'); }
+  finally { b.disabled = false; }
 };
 if (!$('key').value) document.querySelector('details').open = true;
 
@@ -659,7 +744,7 @@ async function uploadFile(blob, mime, onPct) {
   const url = start.headers.get('x-goog-upload-url');
   if (!url) throw new Error('Browser tidak bisa membaca alamat unggahan dari Google. Potong audio menjadi file di bawah 14 MB, lalu coba lagi.');
   const info = await new Promise((res, rej) => {
-    const x = new XMLHttpRequest(); x.open('POST', url);
+    const x = new XMLHttpRequest(); curXhr = x; x.onabort = () => { const e = new Error('Dibatalkan'); e.name = 'AbortError'; rej(e); }; x.open('POST', url);
     x.setRequestHeader('X-Goog-Upload-Offset', '0'); x.setRequestHeader('X-Goog-Upload-Command', 'upload, finalize');
     x.upload.onprogress = e => { if (e.lengthComputable && onPct) onPct(Math.round(e.loaded / e.total * 100)); };
     x.onload = () => { let j = {}; try { j = JSON.parse(x.responseText); } catch (e) {} x.status < 300 && j.file ? res(j.file) : rej(new Error((j.error && j.error.message) || ('Unggahan gagal (' + x.status + ')'))); };
