@@ -49,6 +49,9 @@ button:disabled{opacity:.45;cursor:not-allowed}
 .guide{margin-top:12px;background:var(--soft);border-radius:12px;padding:10px 12px}
 .guide ol{margin:8px 0 6px;padding-left:20px;font-size:.88rem}.guide li{margin-bottom:6px}
 .guide a{color:var(--ac)}.guide code{background:var(--bg);padding:1px 5px;border-radius:5px}
+.spk{display:flex;gap:6px;margin-top:10px}.spk button{flex:1;min-width:0;padding:9px 6px;font-size:.88rem}
+.spk button.on{background:var(--ac);color:var(--card);border:1px solid var(--ac)}
+.interim{min-height:1.4em;margin-top:8px;color:var(--mut);font-style:italic;font-size:.9rem}
 details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 .timer{font:700 2.6rem/1.2 ui-monospace,Menlo,monospace;text-align:center;margin:4px 0 2px;letter-spacing:.04em}
 .seg{display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--soft);border-radius:12px;padding:8px 12px;margin-top:8px;font-size:.88rem}
@@ -111,10 +114,16 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 <button id="up" class="sec">📁 Unggah audio</button>
 </div>
 <input type="file" id="file" accept="audio/*" multiple hidden>
+<div class="chk"><input type="checkbox" id="live" checked><label for="live">Transkrip langsung saat merekam (tanpa Gemini)</label></div>
+<div class="mut">Mode langsung memakai pengenalan suara bawaan Chrome (audio diproses Google, tanpa kunci API) dan <b>tidak bisa membedakan pembicara</b>. Gunakan tombol di bawah untuk menandai siapa yang sedang bicara.</div>
+<div class="spk" id="spk" hidden>
+<button class="sec" data-s="Psikolog">Psikolog</button><button class="sec" data-s="Klien">Klien</button><button class="on" data-s="">Tanpa label</button>
+</div>
+<div class="interim" id="interim"></div>
 <div class="mut" id="ast">Rekaman otomatis berlanjut ke bagian baru saat mencapai batas ukuran. Layar dijaga menyala saat merekam; jangan kunci layar atau pindah aplikasi.</div>
 <div id="segs"></div>
 <div class="bar">
-<button id="tx" disabled>✨ Buat transkrip + pisahkan suara</button>
+<button id="tx" disabled>✨ Transkrip dengan Gemini (pisahkan suara)</button>
 <button id="wipe" class="sec" hidden>Hapus audio dari memori</button>
 </div>
 </section>
@@ -212,6 +221,7 @@ function render() {
   $('up').disabled = !idle;
   $('tx').disabled = !(idle && segments.length);
   $('wipe').hidden = !(idle && segments.length);
+  $('spk').hidden = !(state !== 'idle' && hasSR() && $('live').checked);
 }
 
 async function lockScreen() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
@@ -239,7 +249,7 @@ function startRecorder() {
 }
 
 function finishRecording() {
-  clearInterval(tick); tick = null;
+  clearInterval(tick); tick = null; stopLive();
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; state = 'idle'; finishing = false; segSec = 0;
   unlockScreen();
@@ -247,18 +257,18 @@ function finishRecording() {
 }
 
 $('mic').onclick = async () => {
-  if (state === 'recording') { mr.pause(); state = 'paused'; $('ast').textContent = 'Dijeda. Tekan Lanjutkan untuk meneruskan.'; render(); return; }
-  if (state === 'paused') { mr.resume(); state = 'recording'; lastT = Date.now(); $('ast').textContent = 'Merekam…'; lockScreen(); render(); return; }
+  if (state === 'recording') { mr.pause(); state = 'paused'; stopLive(); $('ast').textContent = 'Dijeda. Tekan Lanjutkan untuk meneruskan.'; render(); return; }
+  if (state === 'paused') { mr.resume(); state = 'recording'; lastT = Date.now(); startLive(); $('ast').textContent = 'Merekam…'; lockScreen(); render(); return; }
   try { stream = await navigator.mediaDevices.getUserMedia({audio: {echoCancellation: true, noiseSuppression: true}}); }
   catch (e) { $('ast').textContent = 'Izin mikrofon ditolak atau tidak tersedia.'; return; }
   state = 'recording'; finishing = false; rotating = false; lastT = Date.now();
-  startRecorder(); lockScreen();
+  startRecorder(); lockScreen(); startLive();
   tick = setInterval(() => { const n = Date.now(); if (state === 'recording') segSec += (n - lastT) / 1000; lastT = n; $('timer').textContent = fmt(totalSec()); }, 500);
   $('ast').textContent = 'Merekam…';
   render();
 };
 
-$('stop').onclick = () => { if (!mr) return; finishing = true; if (mr.state !== 'inactive') mr.stop(); };
+$('stop').onclick = () => { if (!mr) return; stopLive(); finishing = true; if (mr.state !== 'inactive') mr.stop(); };
 
 $('up').onclick = () => $('file').click();
 $('file').onchange = async e => {
@@ -308,6 +318,7 @@ Tulis persis yang diucapkan, tanpa merangkum atau menambah. Bagian yang tidak te
 const shiftTime = (txt, off) => txt.replace(/\[(?:(\d+):)?(\d{1,2}):(\d{2})\]/g, (m, h, mi, se) => '[' + fmt((+h || 0) * 3600 + (+mi) * 60 + (+se) + off) + ']');
 
 $('tx').onclick = async () => {
+  if ($('tr').value.trim() && !confirm('Transkrip yang ada akan diganti dengan hasil Gemini. Lanjutkan?')) return;
   const b = $('tx'); b.disabled = true;
   let all = '', off = 0;
   try {
@@ -330,7 +341,7 @@ $('tx').onclick = async () => {
   } catch (e) {
     $('st').textContent = 'Gagal pada bagian ' + (all ? all.split('\n').length ? 'berikutnya' : '' : 'pertama') + ': ' + e.message + (/mime|format|unsupported/i.test(e.message) ? ' Coba unggah file mp3, m4a, atau wav.' : '') + ' Hasil yang sudah masuk tetap ada di kotak transkrip.';
   }
-  b.textContent = 'Buat transkrip + pisahkan suara'; render();
+  b.textContent = '✨ Transkrip dengan Gemini (pisahkan suara)'; render();
 };
 
 $('swap').onclick = () => {
@@ -496,6 +507,43 @@ $('mlist').onclick = async () => {
   } catch (e) { kshow('❌ Gagal mengambil daftar: ' + e.message, 'err'); }
   b.disabled = false;
 };
+
+// ===== Transkrip langsung (Web Speech API) =====
+function hasSR() { return !!(window.SpeechRecognition || window.webkitSpeechRecognition); }
+let rec = null, liveOn = false, curSpk = '', lastSpk = '';
+function commitLive(t) {
+  t = t.trim(); if (!t) return;
+  const ta = $('tr'); let v = ta.value;
+  if (curSpk) {
+    if (curSpk !== lastSpk || !v.trim()) v += (v && !v.endsWith('\n') ? '\n' : '') + '[' + fmt(totalSec()) + '] ' + curSpk + ': ' + t.charAt(0).toUpperCase() + t.slice(1);
+    else v += ' ' + t;
+    lastSpk = curSpk;
+  } else { v += (v && !/\s$/.test(v) ? ' ' : '') + t; lastSpk = ''; }
+  ta.value = v; ta.scrollTop = ta.scrollHeight;
+}
+function startLive() {
+  if (!hasSR() || !$('live').checked || liveOn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  liveOn = true; rec = new SR(); rec.lang = 'id-ID'; rec.continuous = true; rec.interimResults = true;
+  rec.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) commitLive(r[0].transcript); else interim += r[0].transcript; }
+    $('interim').textContent = interim;
+  };
+  rec.onerror = ev => {
+    if (ev.error === 'not-allowed' || ev.error === 'service-not-allowed') { liveOn = false; $('interim').textContent = 'Transkrip langsung tidak diizinkan/tersedia. Audio tetap direkam; gunakan tombol Gemini setelah selesai.'; }
+  };
+  rec.onend = () => { if (liveOn) { try { rec.start(); } catch (e) {} } };
+  try { rec.start(); } catch (e) {}
+}
+function stopLive() { liveOn = false; try { rec && rec.stop(); } catch (e) {} rec = null; $('interim').textContent = ''; }
+document.querySelectorAll('#spk button').forEach(b => b.onclick = () => {
+  curSpk = b.dataset.s;
+  document.querySelectorAll('#spk button').forEach(x => { x.className = x === b ? 'on' : 'sec'; });
+});
+$('live').onchange = () => { if (state === 'recording') { $('live').checked ? startLive() : stopLive(); } render(); };
+if (!hasSR()) { $('live').checked = false; $('live').disabled = true; $('ast').textContent = 'Transkrip langsung tidak didukung browser ini (gunakan Chrome). Audio tetap bisa direkam dan ditranskripsi dengan Gemini.'; }
+render();
 </script>
 </body>
 </html>
