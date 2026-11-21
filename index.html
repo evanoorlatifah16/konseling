@@ -136,6 +136,7 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 <div class="mut">Isi ini dikirim ke Gemini sebagai acuan ejaan dan makna saat transkrip dan rangkuman. Boleh diedit atau ditambah; perubahan tersimpan di perangkat ini.</div>
 <textarea id="gloss" style="min-height:240px;margin-top:8px"></textarea>
 <div class="bar"><button id="glossreset" class="sec">Kembalikan panduan bawaan</button></div>
+<div class="mut" id="glossnew" hidden>ℹ️ Panduan bawaan baru (Panduan Master) tersedia. Panduan Anda sudah pernah diedit, jadi tidak diganti otomatis. Tekan "Kembalikan panduan bawaan" untuk memakai versi baru; perubahan Anda akan tertimpa.</div>
 <div class="mut" id="glosscnt"></div>
 </details>
 </section>
@@ -1087,86 +1088,242 @@ $('hfile').onchange = async e => {
 updSave(); renderHist();
 
 // ===== Bahasa percakapan & panduan istilah Banjar =====
-const DEFAULT_GLOSS = `# PANDUAN TRANSKRIPSI KONSELING PSIKOLOGI (BAHASA BANJAR - LENGKAP)
+const GLOSS_VER = '2';
+const DEFAULT_GLOSS = `# PANDUAN MASTER TRANSKRIPSI KONSELING PSIKOLOGI (BAHASA BANJAR)
 
-Gunakan panduan ini untuk mentranskrip rekaman sesi konseling psikologi berbahasa Banjar (Banjar Kuala & Banjar Hulu). Pertahankan kata asli bahasa Banjar beserta partikel emosinya agar nuansa psikologis klien tidak hilang.
+Gunakan panduan ini untuk mentranskrip rekaman sesi konseling psikologi berbahasa Banjar (Banjar Kuala & Banjar Hulu). Pertahankan kosakata asli bahasa Banjar beserta partikel emosinya agar nuansa psikologis klien tidak hilang atau berubah makna.
 
-## 1. Sapaan, Panggilan & Relasi Sosial
-- Ulun = Saya / Aku (sopan/hormat)
+## 1. Sapaan, Panggilan & Relasi Keluarga/Sosial
+- Ulun = Saya / Aku (halus/hormat)
 - Aku = Aku (akrab/sebaya/anak-anak)
-- Pian = Anda / Bapak / Ibu (sopan)
-- Ikam / Nyawa = Kamu (akrab/sebaya/kasar saat marah)
-- Sidin = Beliau (orang tua, mertua, atasan, tokoh agama/masyarakat)
-- Inya = Dia
-- Bubuhannya = Mereka / Orang-orang sekitar
+- Pian / Sampiyan = Anda / Bapak / Ibu (sopan/menghormati)
+- Andika = Anda (untuk orang yang sepadan)
+- Ikam / Nyawa = Kamu (sebaya/akrab/kasar saat marah)
+- Sidin / Hidin = Beliau (orang tua, mertua, atasan, guru/ulama)
+- Inya = Dia / Ia
+- Bubuhan / Bubuhannya = Kaum keluarga / Mereka / Orang-orang sekitar
 - Kuitan = Orang tua (ayah & ibu)
-- Abah / Kai = Ayah / Kakek
-- Uma / Mama / Nini = Ibu / Nenek
-- Mintuha = Mertua
+- Abah = Ayah, bapak
+- Uma / Mama / Indung = Ibu
+- Kai / Nini / Datu = Kakek / Nenek / Orang tua dari kakek-nenek
+- Julak / Mamarina = Kakak dari orang tua / Saudara dari orang tua
+- Acil = Tante, bibi
+- Ading = Adik
+- Dangsanak / Dingsanak = Saudara kandung (Badingsanak = bersaudara)
+- Anak kamanakan = Keponakan
+- Mintuha / Warangan / Maruai = Mertua / Besan
 - Laki / Bini = Suami / Istri
-- Dangsanak = Saudara kandung
-- Badingsanak = Bersaudara
-- Sepupu / Sapupu = Sepupu
-- Kakanakan = Anak-anak
-- Kakawanan = Teman-teman
+- Larangan = Kekasih, pacar, tunangan
+- Balu = Janda
+- Kula / Bakula = Kerabat / Memiliki hubungan kekerabatan
+- Papadaan = Sesama, bukan orang lain
+- Patuh / Pinandu = Kenal (Patuhan = kenalan)
+- Kakanakan / Kakawanan = Anak-anak / Teman-teman
 
-## 2. Spektrum Emosi & Suasana Hati (Mood & Affect)
-- Sarik / Sarikan = Marah / Pemarah
-- Sangkal = Kesal / Dongkol / Jengkel yang dipendam
-- Muak / Juhut = Muak / Bosan / Jengah
-- Pusang = Bingung / Gelisah / Pusing memikirkan masalah
-- Takutan = Takut / Cemas / Khawatir
-- Gair = Ngeri / Takut / Cemas akan sesuatu yang buruk terjadi
-- Supan = Malu / Minder / Rendah diri
-- Maras = Kasihan / Iba / Sedih melihat keadaan
+## 2. Spektrum Emosi, Suasana Hati & Reaksi Psikologis
+- Sarik / Sarikan / Muar = Marah, pemarah, benci, tidak senang (Disariki = dimarahi, Manyariki = memarahi)
+- Garigitan = Geram
+- Sangkal = Kesal / Dongkol / Jengkel tertahan
+- Muyak / Muak / Juhut / Tulai = Bosan, muak, lelah secara emosional
+- Pusang = Rasa sumpek, bingung, gelisah memikirkan masalah
+- Mawah / Hayaan / Kulang kisar = Risau, bimbang, gelisah
+- Baasaan = Was-was
+- Gair / Takutan = Takut, cemas, khawatir (Takurisit = perasaan teramat takut)
+- Hara = Gugup karena takut
+- Kabuliyangan = Panik
+- Pamburisit = Penakut
+- Supan / Himui = Malu, minder, rendah diri (Sisipuan = tersipu-sipu)
+- Maras = Kasihan, iba, tidak tega
+- Marista = Sedih, memendam derita
 - Pilu / Rawan hati = Terharu / Tersentuh / Sedih mendalam
-- Hancur hati = Patah hati / Sangat kecewa
+- Hancur hati / Antal / Hanta = Patah hati / Rasa tidak puas / Hampa
+- Hawai = Terasa hampa (untuk suasana), tidak bersemangat
 - Kada karuan rasa = Perasaan kacau / Hampa / Tidak menentu
-- Hati kada nyaman = Tidak tenang / Mengganjal / Gelisah
-- Hati panas = Emosi memuncak / Mudah tersinggung
-- Hati dingin = Tenang / Sabar / Ikhlas
-- Tabulik-bulik = Terngiang-ngiang / Terus teringat (ruminasi/trauma)
-- Tapikir tarus = Terpikirkan terus-menerus (overthinking)
-- Baungut = Melamun / Termenung kosong
-- Basungkup = Mengurung diri / Menarik diri dari lingkungan (isolasi)
-- Kada purun = Tidak tega / Merasa bersalah jika menolak (people pleaser)
-- Barasa bersalah = Merasa bersalah
+- Hati kada nyaman = Perasaan tidak tenang / Mengganjal / Gelisah
+- Hati panas / Hati dingin = Emosi memuncak / Tenang, sabar, ikhlas
+- Himung = Gembira
+- Bapala = Puas hati
+- Katuju = Suka, menyukai
+- Dandaman / Karindangan / Kaganangan = Rindu, kangen, teringat
+- Tabulik-bulik / Tapikir tarus = Terngiang-ngiang / Terpikirkan terus-menerus (ruminasi/overthinking)
+- Kalumpanan = Lupa
+- Buhir / Bahiri = Dengki, iri hati
+- Cakah / Agak / Harat = Sombong, angkuh
+- Arai / Baarai / Paragahan / Piragah = Seronok, pamer, menunjuk-nunjuk, sok
+- Ungah = Manja
+- Takipik / Tahanjat / Takajut = Terkejut, terperanjat, tersentak, syok
 
-## 3. Keluhan Fisik, Psikosomatis & Energi
-- Uyuh = Capek / Lelah (fisik maupun mental/burnout)
-- Uyuh banar hati = Sangat lelah secara emosional/batin
-- Awak lamah = Badan lemas / Tidak bertenaga (lesu/depresif)
+## 3. Keluhan Fisik, Psikosomatis & Kondisi Tubuh
+- Uyuh / Lapah / Tuhuk = Capek, lelah, letih, habis usaha (Uyuh banar hati = lelah batin/burnout)
+- Panat = Penat
+- Awak = Badan
+- Awak lamah / Lintuk / Luyut / Ungkui / Gayur / Ringkut = Badan lemas, loyo, lunglai, tidak bertenaga, badan terasa sakit
 - Awak marista = Badan terasa sakit/menderita karena beban pikiran
-- Garing = Sakit
-- Paning / Pusing = Sakit kepala / Pusing
-- Manggitir = Gemetar (reaksi cemas/panik/takut)
-- Badarau / Badabar = Jantung berdebar kencang (palpitasi/cemas)
-- Sesak / Sasadak = Sesak napas / Dada terasa penuh
-- Muak / Mual = Mual karena cemas atau jijik
-- Kada kawa guring = Tidak bisa tidur (insomnia)
-- Guring kada nyenyak = Tidur gelisah / Sering terbangun
-- Mangigau = Mengigau / Mimpi buruk
-- Kada nafsu makan = Tidak nafsu makan
-- Lambung naik / Mag = Sakit lambung yang dipicu stres
+- Garing = Sakit (Wigas / Sigar = sehat, sembuh)
+- Paning / Pusing / Minik = Pusing, pening, sakit kepala
+- Bibis = Sakit perut
+- Maarit = Menahan rasa sakit (Taarunuh = mengerang menahan sakit)
+- Galitiran / Manggatar / Manggitir = Gemetar, menggigil (reaksi cemas/panik)
+- Badarau / Badabar = Jantung berdebar kencang (palpitasi)
+- Sesak / Sasadak / Mahingak / Mahingal / Manggah = Sesak napas, susah bernapas, terengah-engah
+- Hinak / Bahinak = Napas / Bernapas
+- Siup = Pingsan
+- Calung = Pucat, bola mata cekung karena kurang tidur/sakit
+- Kular = Mata kuyu
+- Bangkur = Keadaan mata sembab sehabis menangis
+- Guring / Janak / Mamicak = Tidur / Tidur lelap / Kuat tidur (Kada kawa guring = insomnia)
+- Tailan = Terjaga dari tidur
+- Maigau / Mangigau = Mengigau, mimpi buruk
+- Kipa / Singkal = Pegal pada anggota tubuh
+- Kasamutan / Katur / Ngingir = Kesemutan, kebas
+- Nginging = Telinga berdengung
+- Sunging = Telinga sakit akibat bunyi keras
+- Mual / Manjalujuk = Rasa ingin muntah
+- Paluh = Keringat
 
-## 4. Konflik, Trauma & Perilaku Interpersonal
-- Bakalahi = Bertengkar / Cekcok
-- Bacakut = Bertengkar hebat / Berkelahi fisik atau mulut
-- Banyaki = Dimarahi / Dibentak / Dihardik
-- Diulah-ulah = Diperlakukan tidak adil / Direndahkan / Dikerjai
-- Disambati = Diejek / Dihina / Digosipkan
-- Dipadahakan = Dituduh / Dikatakan (sering dalam konteks negatif)
-- Dibunguli = Dibohongi / Ditipu / Dimanipulasi
-- Ditinggalakan = Ditinggalkan / Diabaikan
-- Bapisah = Berpisah / Bercerai
+## 4. Konflik, Trauma & Dinamika Perilaku
+- Bakalahi / Bacakut / Bakarat / Batingas / Barukat = Bertengkar, cekcok, berkelahi
 - Batangkar = Berdebat keras / Bersitegang
-- Manampar / Manapak = Menampar`;
+- Bahual = Bermasalah
+- Banyaki = Dimarahi / Dibentak
+- Bamamai / Bagarunum / Manggarunum = Mengomel karena marah, menggerutu dengan suara pelan
+- Mambihau = Menghardik
+- Kariau / Manambirau = Mengancam dengan suara keras, menggertak
+- Bakuciak / Bakuriak / Bakurahing / Bahalulung = Berteriak, menjerit, menangis histeris
+- Kuringis / Takuringis = Terisak-isak, hendak menangis menahan sakit
+- Manangis = Menangis
+- Disambati / Mawada / Mahapak / Mahuhulut / Takulibi = Diejek, dihina, digosipkan, meledek, mencibir
+- Diulah-ulah = Diperlakukan tidak adil / Direndahkan / Dikerjai
+- Dipadahakan / Maniwas / Tiwas / Tumpalak = Dituduh, menuduh, menimpakan kesalahan
+- Mangaramput / Dibunguli / Karadau / Mangalihum / Mawaluhi / Katidaan = Berbohong, dibohongi, dusta, asal bicara tanpa dasar, menipu, mengada-gada
+- Mangayumuh = Berbicara tidak jelas karena ada yang disembunyikan
+- Tapulilit = Bicara tidak jelas ujung pangkalnya
+- Tapulingaan = Kebingungan
+- Barambangan = Berpisah (suami-istri sudah tidak serumah tapi belum resmi cerai)
+- Bapisah / Sarak = Berpisah / Cerai
+- Hamuk / Mahamuk = Amuk, mengamuk
+- Bapangsar = Merasa terlalu sakit (fisik/batin)
+- Hambat / Pupuh / Pangkung / Tapak / Manampar / Tinjak / Lincai = Pukul, tampar, tendang, diinjak-injak (indikasi kekerasan fisik/KDRT)
+- Balar / Bantir / Bintat / Mumui = Memar, lebam, berdarah-darah
+- Taukung = Terkurung karena suatu keadaan tertentu
+- Hinip / Bahinip / Mandam / Ranai / Sintup / Bagana / Manuh = Diam, menyembunyikan diri, diam terpaku, terdiam tertunduk, pendiam
+- Bapiit / Basungkup = Menyembunyikan/memencilkan diri, mengurung diri di kamar
+- Ngangut / Baungut / Ungut-ungut = Melamun, termenung kosong
+- Manahan / Mamandam = Menahan (emosi/amarah/tangis), memendam perasaan
+- Mabuk / Madat / Nyanyat = Ketagihan, candu
+- Ikar = Curang
+- Macal / Dugal / Mucil = Nakal, iseng, jahil
+
+## 5. Kognisi, Coping & Nilai Budaya/Spiritual
+- Maanggap = Mengambil/memasukkan perkataan ke dalam hati/perasaan
+- Manahakan = Membayangkan
+- Idabul = Niat, ide, gagasan
+- Pungkala = Sebab, pokok persoalan
+- Parigal = Kelakuan
+- Anggal / Banggalan / Nyatap = Pekerjaan/urusan yang tidak diselesaikan atau tak berhasil
+- Banyaian / Bayut / Kulir = Gemar menunda pekerjaan, lambat, malas
+- Bahimat / Cangkal / Tugul = Melakukan sesuatu dengan sungguh-sungguh, gigih, giat
+- Maasi / Paasian = Patuh, menurut pada nasihat
+- Baindah / Indah / Kada hakun / Kada rigi = Menolak, tidak mau, tidak sudi
+- Baliwa / Basarah / Pasrah = Mengalah / Pasrah / Berserah diri
+- Sabar / Ikhlas / Batobat = Sabar / Ikhlas / Menyesali perbuatan
+- Papadah / Padahi = Nasihat, petuah / Sampaikan, nasihati
+- Pamali = Pantangan adat
+- Katulahan / Badulat tukahai = Kualat karena tidak mendengar nasihat orang tua
+- Kapidaraan / Diganggu / Kataguran = Merasa sakit/demam akibat gangguan makhluk halus (ekspresi kultural stres/halusinasi)
+- Tatamba / Batatamba / Tawas / Papajar = Obat / Berobat / Jampi / Syarat pengobatan tradisional
+- Bahaul / Babacaan = Kenduri arwah / Pengajian
+
+## 6. Aktivitas, Benda & Percakapan Sehari-hari
+- Bapandir / Basurah / Mamandir / Bakisah / Bacurhat = Berbicara, mengobrol, berdialog, bercerita
+- Batakun / Manjawab / Mandangarakan = Bertanya (Tatakunan = pertanyaan) / Menjawab / Mendengarkan
+- Bapadah = Memberitahu
+- Sambat / Kuya = Sebut, katakan
+- Rawa / Marawa = Sapa / Menyapa
+- Mandangani / Mangganii / Tulung / Gani'i = Menemani, menolong
+- Julung / Mambari = Beri, berikan, memberi
+- Maampihi / Mambuang = Menghentikan, menyudahi / Membuang, melepaskan beban
+- Makan / Bantas / Rangka = Makan / Makan dengan lahap
+- Nginum / Tuntum = Minum / Minum langsung dari botol
+- Mandi / Batampungas / Basuh = Mandi / Mencuci muka / Cuci
+- Guring / Barabah = Tidur / Berbaring
+- Bapuat / Bangun = Bangun (dari duduk/tidur)
+- Badangkak / Bajungkuk / Batalimpuh / Balapak = Jongkok / Duduk bersimpuh / Duduk di lantai
+- Cagat = Tegak / Berdiri lurus
+- Malihat / Tiring / Jinguk / Itih / Sirit = Melihat / Menengok / Lihat dengan teliti / Melirik
+- Manukar / Manjual / Batutukar = Membeli / Menjual / Belanja
+- Tahur / Tahuri / Angsul = Bayar / Membayar / Kembalian belanja
+- Maulah / Gawi / Bagawi / Mancari = Membuat, bikin / Kerja, bekerja / Mencari
+- Ambil / Bibit / Juhut = Ambil
+- Andak / Buat / Taruhi = Letakkan / Masukkan / Simpan
+- Bulik = Pulang (Baisur = memohon diri untuk pulang)
+- Tulak / Madam = Berangkat, pergi / Merantau
+- Bajalan / Balalah / Hahayagau / Bajuuk = Berjalan, berjalan-jalan tanpa tujuan
+- Galiuran / Galiyur-galiyur / Kulilik-kulilik = Lalu lalang, mondar-mandir
+- Hahalingau / Palingau-palingau = Memandang kiri-kanan mencari sesuatu, tengak-tengok
+- Higa / Parak / Rupak / Intang = Samping / Dekat / Di sekitar
+- Lawang / Lalungkang / Tawing / Hatap / Padu / Atang = Pintu / Jendela / Dinding / Atap / Dapur
+- Banyu / Hintalu / Iwak / Wadai = Air / Telur / Ikan / Kue-jajanan
+- Salawar / Tapih / Salimut / Saput / Gabang = Celana / Kain sarung / Selimut
+- Duit / Pacahan / Pakulihan = Uang / Uang recehan / Pendapatan
+- Kartak / Timbuk / Handil = Jalan raya / Sungai kecil
+
+## 7. Kata Tanya, Waktu, Keterangan & Imbuhan/Partikel (WAJIB DIPERTAHANKAN)
+- Napa / Kanapa / Siapa / Pabila / Kayapa / Dimapa / Barapa = Apa / Kenapa / Siapa / Kapan / Bagaimana / Berapa
+- Ngini / Niya / Damia / Sini / Sia = Ini / Begini / Sini
+- Ngitu / Naya / Damintu / Tu / Situ / Sana = Itu / Begitu / Situ / Sana
+- Wahini / Mantuk = Sekarang / Baru saja, barusan
+- Kaina / Dudi = Nanti / Kemudian
+- Pahin / Rahat / Wayah = Saat, ketika, pada waktu
+- Imbah / Limbah = Setelah
+- Halam / Bahari = Dahulu / Dahulu kala
+- Lawas / Manuala = Lama / Sangat lama, tua
+- Sungsung / Baisukan / Tanghari / Kamarian / Samalam / Isuk = Pagi-pagi / Pagi / Tengah hari / Sore / Kemarin / Besok
+- Rancak / Racap / Titir / Tantan / Saban hari / Tarus = Sering, kerap, berulang-ulang, setiap hari, terus-menerus
+- Bahanu / Limbahanu / Jarang = Kadang-kadang, terkadang / Jarang
+- Barataan / Sabarataan / Samunyaan = Semua, semuanya
+- Sapalih / Sadikit / Babaya / Saikit / Banyak = Sebagian / Sedikit / Sekedarnya / Banyak
+- Kada / Kadada / Dapalu = Tidak / Tidak ada / Tidak ada apa-apa sama sekali
+- Suah / Hudah / Balum = Pernah / Sudah / Belum
+- Kawa / Magan / Hingkat = Bisa, mampu, boleh
+- Handak / Kacar / Harap = Ingin, mau, kepingin / Berharap
+- Purun / Kada purun = Tega / Tidak tega
+- Paraya / Sarana = Tidak usah
+- Tagal / Pati / Marga = Tetapi, tapi / Karena
+- Amun / Jaka / Caka / Halin = Jika, seandainya, umpama, kalau memang
+- Pariannya / Paribasa / Parnum / Kaya / Ilah = Misalnya, perumpamaan / Seperti
+- Awan / Wan / Lawan = Dengan / Dan / Melawan
+- Bujur / Bujur-bujur = Betul, benar / Sungguh-sungguh
+- Hanyar / Puga / Malatik = Baru
+- Rigat / Muring / Musil / Barasih / Siang = Kotor / Bersih, bersihkan
+- Nyaman / Sutil / Ngalih = Enak, sedap / Mudah / Susah, sulit
+- Banar / Jingkar / Bilang / Liwar / Kapijanan = Sangat, sekali, amat sangat, sungguh, terlampau, terlalu
+- Ayungannya / Ayuha / Ayuja / Inggih = Akhirnya / Marilah, baiklah / OK / Ya (sopan)
+- Awalan "ba-" = pengganti "ber-" (bajalan, bapandir, batakun)
+- Awalan "ma-" / "man-" / "mang-" = pengganti "me-" (manangis, manahan, manggitir)
+- Awalan "ta-" = pengganti "ter-" / tidak sengaja (tabulik, tapikir, takajut)
+- Akhiran "-akan" = pengganti "-kan" (padahakan = katakan, dangarakan = dengarkan)
+- Partikel "pang" = penegas rasa bingung/tuntutan jawaban ("Kayapa pang?" = Bagaimana dong?)
+- Partikel "ai" = nada pasrah/mengiyakan ("Iya ai" = Ya sudahlah)
+- Partikel "haja" = saja / meremehkan masalah sendiri ("Kada papa haja" = Tidak apa-apa saja)
+- Partikel "gin" = pun / juga ("Ulun gin kada tahu" = Saya pun tidak tahu)
+- Partikel "lah" = penegas pertanyaan ("Bujur lah?" = Benar kah?)
+
+## 8. Contoh Pola Kalimat Konseling (Few-Shot Reference)
+- Klien: "Ulun tu supan banar wan bubuhannya, Bu ai. Mun takumpul, awak langsung manggitir, hati kada nyaman."
+  (Konteks: Saya sangat malu dengan mereka, Bu. Kalau berkumpul, badan langsung gemetar, hati tidak tenang.)
+- Klien: "Kadada nang kawa ulun kisahi di rumah. Mun bapandir sadikit, langsung banyaki abah. Ulun uyuh banar sudah manahan."
+  (Konteks: Tidak ada yang bisa saya ceritakan di rumah. Kalau bicara sedikit, langsung dimarahi ayah. Saya sudah sangat lelah menahan.)
+- Klien: "Ulun takutan katulahan mun kada hakun manuruti kahandak sidin, tapi hati ulun hancur banar."
+  (Konteks: Saya takut kualat kalau menolak menuruti kemauan beliau, tapi hati saya sangat hancur.)
+- Konselor: "Jadi salawas ini pian mamandam saurangan haja lah? Napa nang maulah pian kada purun manulak?"
+  (Konteks: Jadi selama ini Anda memendam sendirian saja ya? Apa yang membuat Anda tidak tega menolak?)`;
 function langBlock(summary) {
   if ($('lang').value !== 'banjar') return '';
   const gl = $('gloss').value.trim().slice(0, 30000);
   const rule = summary
-    ? 'Bahasa: percakapan memakai bahasa Indonesia bercampur Banjar. Untuk kata Banjar yang bermakna psikologis, pertahankan kata aslinya dalam kutipan dan beri arti Indonesia dalam kurung saat pertama muncul, mis. "sarik (marah)". Gunakan panduan istilah hanya untuk memahami makna dan nuansa emosi, bukan untuk menambah informasi yang tidak diucapkan klien.'
-    : 'BAHASA: percakapan memakai bahasa Indonesia bercampur bahasa Banjar (Banjar Kuala dan Banjar Hulu). Tulis kata Banjar persis sebagaimana diucapkan; jangan diterjemahkan atau diindonesiakan, dan pertahankan partikel emosinya. Gunakan panduan istilah di bawah sebagai acuan ejaan dan makna. Untuk kata Banjar yang tidak ada di panduan, tulis sesuai bunyi dan beri [tidak jelas] bila ragu. Jangan menulis arti kata di dalam transkrip.';
+    ? 'Bahasa: percakapan memakai bahasa Indonesia bercampur Banjar. Untuk kata Banjar yang bermakna psikologis, pertahankan kata aslinya dalam kutipan dan beri arti Indonesia dalam kurung saat pertama muncul, mis. "sarik (marah)". Gunakan panduan istilah hanya untuk memahami makna dan nuansa emosi, bukan untuk menambah informasi yang tidak diucapkan klien. Ungkapan budaya atau spiritual (mis. katulahan, pamali, kapidaraan) dicatat sebagai pengalaman atau keyakinan klien, bukan ditafsirkan sebagai gangguan jiwa.'
+    : 'BAHASA: percakapan memakai bahasa Indonesia bercampur bahasa Banjar (Banjar Kuala dan Banjar Hulu). Tulis kata Banjar persis sebagaimana diucapkan; jangan diterjemahkan atau diindonesiakan, dan pertahankan partikel emosinya. Gunakan panduan istilah di bawah sebagai acuan ejaan dan makna. Untuk kata Banjar yang tidak ada di panduan, tulis sesuai bunyi dan beri [tidak jelas] bila ragu. Jangan menulis arti kata di dalam transkrip. Bagian "Contoh Pola Kalimat" pada panduan hanya contoh ejaan dan makna; jangan disalin ke transkrip, dan tetap gunakan label Psikolog/Klien.';
   return rule + '\n\nPANDUAN ISTILAH BANJAR:\n' + gl + '\n\n';
 }
 function glossCount() { const n = $('gloss').value.length; $('glosscnt').textContent = n + ' karakter' + (n > 30000 ? ' (melebihi 30.000, sisanya tidak dikirim)' : ''); }
@@ -1177,10 +1334,16 @@ function applyLang() {
 }
 $('lang').onchange = () => { applyLang(); if (state === 'idle' && hasSR()) $('live').checked = $('lang').value !== 'banjar'; render(); };
 $('gloss').addEventListener('input', () => { try { localStorage.setItem('gloss', $('gloss').value); } catch (e) {} glossCount(); });
-$('glossreset').onclick = () => { if (confirm('Kembalikan panduan istilah ke versi bawaan? Perubahan Anda akan hilang.')) { $('gloss').value = DEFAULT_GLOSS; try { localStorage.setItem('gloss', DEFAULT_GLOSS); } catch (e) {} glossCount(); } };
+$('glossreset').onclick = () => { if (confirm('Kembalikan panduan istilah ke versi bawaan? Perubahan Anda akan hilang.')) { $('gloss').value = DEFAULT_GLOSS; $('glossnew').hidden = true; try { localStorage.setItem('gloss', DEFAULT_GLOSS); } catch (e) {} glossCount(); } };
 (() => {
-  let g = '', l = 'banjar';
-  try { g = localStorage.getItem('gloss') || ''; l = localStorage.getItem('lang') || 'banjar'; } catch (e) {}
+  let g = '', l = 'banjar', gv = '';
+  try { g = localStorage.getItem('gloss') || ''; l = localStorage.getItem('lang') || 'banjar'; gv = localStorage.getItem('glossv') || ''; } catch (e) {}
+  if (gv !== GLOSS_VER) {
+    const oldDefault = g.length === 3322 && g.startsWith('# PANDUAN TRANSKRIPSI KONSELING PSIKOLOGI (BAHASA BANJAR - LENGKAP)');
+    if (!g || oldDefault) { g = DEFAULT_GLOSS; try { localStorage.setItem('gloss', g); } catch (e) {} }
+    else $('glossnew').hidden = false;
+    try { localStorage.setItem('glossv', GLOSS_VER); } catch (e) {}
+  }
   $('gloss').value = g || DEFAULT_GLOSS; $('lang').value = l === 'id' ? 'id' : 'banjar';
   applyLang(); glossCount();
   if ($('lang').value === 'banjar' && hasSR()) $('live').checked = false;
