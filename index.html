@@ -128,6 +128,16 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 </div>
 <label for="fmt">Format catatan</label>
 <select id="fmt"><option>DAP</option><option>SOAP</option></select>
+<label for="detail">Tingkat detail rangkuman</label>
+<select id="detail"><option value="ringkas">Ringkas (±250 kata)</option><option value="standar">Standar (±500 kata)</option><option value="rinci" selected>Rinci (800+ kata, disarankan)</option></select>
+<label for="lang">Bahasa percakapan</label>
+<select id="lang"><option value="banjar">Indonesia + Banjar (pakai panduan istilah)</option><option value="id">Indonesia saja</option></select>
+<details class="guide" id="glossbox"><summary>📖 Panduan istilah Banjar (acuan transkrip)</summary>
+<div class="mut">Isi ini dikirim ke Gemini sebagai acuan ejaan dan makna saat transkrip dan rangkuman. Boleh diedit atau ditambah; perubahan tersimpan di perangkat ini.</div>
+<textarea id="gloss" style="min-height:240px;margin-top:8px"></textarea>
+<div class="bar"><button id="glossreset" class="sec">Kembalikan panduan bawaan</button></div>
+<div class="mut" id="glosscnt"></div>
+</details>
 </section>
 
 <section class="card">
@@ -152,6 +162,7 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 </div>
 <div class="chk"><input type="checkbox" id="live" checked><label for="live">Transkrip langsung saat merekam (tanpa Gemini)</label></div>
 <div class="mut">Mode langsung memakai pengenalan suara bawaan Chrome (audio diproses Google, tanpa kunci API) dan <b>tidak bisa membedakan pembicara</b>. Gunakan tombol di bawah untuk menandai siapa yang sedang bicara.</div>
+<div class="mut" id="livebanjar" hidden>⚠️ Transkrip langsung (Chrome) tidak mengenal bahasa Banjar dan akan salah menebak kata. Dimatikan secara otomatis; gunakan ✨ Transkrip dengan Gemini setelah merekam.</div>
 <div class="mut" id="ast">Rekaman otomatis berlanjut ke bagian baru saat mencapai batas ukuran. Layar dijaga menyala saat merekam; jangan kunci layar atau pindah aplikasi.</div>
 <div id="segs"></div>
 <div class="bar">
@@ -239,7 +250,8 @@ const INST = {
   cmc:  {name: 'Cordelia Medical Center', short: 'CMC', h: 185, fmt: 'SOAP', minor: false, ctx: 'Layanan psikologi di rumah sakit. Gunakan bahasa klinis yang ringkas; klien dapat disebut pasien/klien.'},
   ubl:  {name: 'Universitas Borneo Lestari', short: 'UBL', h: 135, fmt: 'DAP', minor: false, ctx: 'Layanan konseling mahasiswa. Perhatikan aspek akademik, adaptasi, relasi, keluarga, dan keuangan jika disebut.'},
   sman: {name: 'SMAN 2 Banjarbaru', short: 'SMAN2', h: 265, fmt: 'DAP', minor: true, ctx: 'Konseling siswa SMA (remaja, di bawah umur). Perhatikan aspek sekolah, keluarga, teman sebaya, dan perkembangan remaja; tandai bila perlu melibatkan orang tua/wali atau guru BK.'},
-  lmmc: {name: 'Lambung Mangkurat Medical Center', short: 'LMMC', h: 28, fmt: 'SOAP', minor: false, ctx: 'Layanan psikologi di rumah sakit. Gunakan bahasa klinis yang ringkas; klien dapat disebut pasien/klien.'}
+  lmmc: {name: 'Lambung Mangkurat Medical Center', short: 'LMMC', h: 28, fmt: 'SOAP', minor: false, ctx: 'Layanan psikologi di rumah sakit. Gunakan bahasa klinis yang ringkas; klien dapat disebut pasien/klien.'},
+  kp:   {name: 'Praktik Mandiri (Kalibrasi Psikologi)', short: 'KALIBRASI', h: 330, fmt: 'DAP', minor: false, ctx: 'Praktik psikologi mandiri (Kalibrasi Psikologi) dengan klien umum. Gunakan bahasa profesional yang jelas; jika klien tampak di bawah umur, tandai bahwa keterlibatan orang tua/wali perlu dipertimbangkan.'}
 };
 let curInst = 'cmc';
 try { const s = localStorage.getItem('inst'); if (INST[s]) curInst = s; } catch (e) {}
@@ -456,7 +468,7 @@ $('tx').onclick = async () => {
         parts.push({file_data: {mime_type: mime, file_uri: uploaded.uri}});
         phase = 'gen';
       } else parts.push({inline_data: {mime_type: mime, data: await toB64(g.blob)}});
-      let p = TX_PROMPT;
+      let p = TX_PROMPT + '\n\n' + langBlock(false);
       if (all) p += '\n\nIni lanjutan dari bagian sebelumnya. Pertahankan pelabelan pembicara yang konsisten. Akhir bagian sebelumnya (JANGAN ditranskripsikan ulang):\n' + all.split('\n').slice(-6).join('\n');
       parts.push({text: p});
       let t;
@@ -523,18 +535,53 @@ $('swap').onclick = () => {
   $('tr').value = $('tr').value.replace(/(^|\n)(\[[\d:]+\]\s*)?(Psikolog|Klien):/g, (m, a, t, w) => a + (t || '') + (w === 'Psikolog' ? 'Klien' : 'Psikolog') + ':');
 };
 
+const SUB = ['Keluhan utama', 'Pemicu dan perjalanan', 'Gejala', 'Konteks kehidupan', 'Pernyataan penting klien', 'Observasi percakapan', 'Tema dan dinamika', 'Pola pikir dan koping', 'Kekuatan dan sumber daya', 'Hipotesis sementara', 'Respons terhadap intervensi', 'Risiko', 'Intervensi dalam sesi', 'Tugas untuk klien', 'Rencana sesi berikutnya', 'Perlu dikonfirmasi', 'Rujukan atau pihak terkait'];
+const T = {
+  keluhan: 'Keluhan utama: alasan datang atau isu yang dibawa, sebisa mungkin dengan kata-kata klien.',
+  pemicu: 'Pemicu dan perjalanan: pemicu, awal mula, durasi, frekuensi, dan perubahan dari waktu ke waktu.',
+  gejala: 'Gejala: emosi, pikiran, perilaku, dan keluhan fisik yang disebutkan.',
+  konteks: 'Konteks kehidupan: keluarga, relasi, pekerjaan/studi, lingkungan sosial, dan stresor lain yang disebut.',
+  kutipan: 'Pernyataan penting klien: 3-6 kutipan singkat (maks. 25 kata) dengan penanda waktu [mm:ss].',
+  observasi: 'Observasi percakapan: nada emosi, pola bicara, perubahan afek, dan kejadian penting dalam sesi yang tersirat dari transkrip.',
+  tema: 'Tema dan dinamika: tema utama dan keterkaitan antar-isu.',
+  pola: 'Pola pikir dan koping: keyakinan atau pola pikir yang tampak dan cara klien mengatasi masalah.',
+  kekuatan: 'Kekuatan dan sumber daya: dukungan dan kekuatan yang dimiliki klien.',
+  hipotesis: 'Hipotesis sementara: kesan klinis awal, ditulis sebagai hipotesis yang perlu dikonfirmasi psikolog (bukan diagnosis).',
+  respons: 'Respons terhadap intervensi: reaksi klien terhadap pertanyaan atau teknik psikolog.',
+  risiko: 'Risiko: ideasi atau rencana menyakiti diri/orang lain, kekerasan, penggunaan zat; tulis yang tersurat, atau "Tidak ada indikasi risiko yang tersurat".',
+  intervensi: 'Intervensi dalam sesi: teknik atau pendekatan yang dilakukan psikolog.',
+  tugas: 'Tugas untuk klien: latihan atau kesepakatan yang dibuat.',
+  rencana: 'Rencana sesi berikutnya: fokus dan target.',
+  konfirm: 'Perlu dikonfirmasi: informasi penting yang belum jelas dari transkrip dan perlu digali.',
+  rujukan: 'Rujukan atau pihak terkait: hanya bila disebut atau jelas diperlukan.'
+};
+const lines = (...k) => k.map(x => T[x]).join('\n');
+const TEMPLATES = {
+  DAP: 'D (Data):\n' + lines('keluhan', 'pemicu', 'gejala', 'konteks', 'kutipan', 'observasi') + '\nA (Assessment):\n' + lines('tema', 'pola', 'kekuatan', 'hipotesis', 'respons', 'risiko') + '\nP (Plan):\n' + lines('intervensi', 'tugas', 'rencana', 'konfirm', 'rujukan'),
+  SOAP: 'S (Subjective):\n' + lines('keluhan', 'pemicu', 'gejala', 'konteks', 'kutipan') + '\nO (Objective):\n' + lines('observasi') + '\nA (Assessment):\n' + lines('tema', 'pola', 'kekuatan', 'hipotesis', 'respons', 'risiko') + '\nP (Plan):\n' + lines('intervensi', 'tugas', 'rencana', 'konfirm', 'rujukan')
+};
+const LEN = {
+  ringkas: 'Panjang sekitar 200-300 kata; tiap subbagian cukup 1-2 butir.',
+  standar: 'Panjang sekitar 400-600 kata; tiap subbagian 2-4 butir.',
+  rinci: 'Panjang 800-1500 kata menyesuaikan lama sesi; uraikan tiap subbagian selengkap mungkin dengan butir-butir yang spesifik (siapa, apa, kapan, seberapa sering), bukan kalimat umum.'
+};
 function sumPrompt(fmt, kode, text) {
-  const s = fmt === 'SOAP'
-    ? 'S (Subjective): keluhan dan cerita klien\nO (Objective): observasi perilaku dan afek yang tersirat\nA (Assessment): analisis tema dan dinamika\nP (Plan): rencana intervensi dan sesi berikutnya'
-    : 'D (Data): hal utama yang dikemukakan klien dan observasi dalam sesi\nA (Assessment): analisis tema, emosi, dan dinamika\nP (Plan): intervensi yang dipakai, tugas, dan fokus sesi berikutnya';
   return `Kamu asisten yang membantu psikolog menyusun catatan sesi konseling dalam Bahasa Indonesia.
-Dari transkrip berlabel Psikolog/Klien di bawah, buat rangkuman format ${fmt}:
-${s}
+Dari transkrip berlabel Psikolog/Klien di bawah, buat catatan sesi format ${fmt} dengan struktur berikut. Judul bagian dan nama subbagian ditulis persis seperti di template, masing-masing diikuti titik dua dan berada di baris sendiri; isinya berupa butir-butir diawali "- ".
 
-Tambahkan: "Poin tindak lanjut" (maks. 3 butir) dan "Catatan risiko" HANYA jika ada indikasi risiko menyakiti diri/orang lain; jika tidak, tulis "Tidak ada indikasi risiko yang tersurat".
-Aturan: hanya gunakan isi transkrip, jangan menambah fakta atau diagnosis. Bedakan pernyataan klien dari intervensi psikolog. Tanpa markdown (#, **). Ringkas dan profesional.
+${TEMPLATES[fmt === 'SOAP' ? 'SOAP' : 'DAP']}
 
-Instansi: ${INST[curInst].name}
+Aturan:
+- Hanya gunakan isi transkrip. Jika suatu subbagian tidak dibahas, tulis "- Tidak dibahas dalam sesi ini" dan jangan mengarang.
+- Jangan menambah fakta, diagnosis, atau pengamatan visual (ekspresi wajah, bahasa tubuh) yang tidak mungkin diketahui dari transkrip.
+- Bedakan yang diucapkan klien dari interpretasi. Kalimat interpretatif diawali "Tampak", "Tersirat", atau "Hipotesis".
+- Tulis dari sudut pandang orang ketiga ("Klien menyampaikan..."), tanpa menyebut nama asli.
+- Cantumkan penanda waktu [mm:ss] pada pernyataan atau kejadian penting agar bisa dicek ke transkrip.
+- Transkrip dari suara bisa mengandung salah dengar dan label pembicara yang keliru. Jika tampak terbalik, gunakan konteks peran (psikolog bertanya/mengarahkan, klien bercerita). Bagian tidak jelas ditandai [tidak jelas].
+- Teks biasa tanpa markdown (tanpa #, **, atau tabel).
+- ${LEN[$('detail').value] || LEN.rinci}
+
+${langBlock(true)}Instansi: ${INST[curInst].name}
 Konteks layanan: ${INST[curInst].ctx}
 Kode klien: ${kode || '-'}
 
@@ -547,15 +594,17 @@ $('sum').onclick = async () => {
   if (t.length < 30) { $('st').textContent = 'Transkrip masih terlalu pendek.'; return; }
   const b = $('sum'); b.disabled = true; b.textContent = 'Merangkum…';
   $('rc').hidden = false; $('exp').hidden = true; $('out').textContent = 'Memproses…';
+  const head = 'INSTANSI: ' + INST[curInst].name + '\nKODE KLIEN: ' + ($('kode').value.trim() || '-') + '\nTANGGAL: ' + $('tgl').value + '\nFORMAT: ' + $('fmt').value + '\n\n';
   try {
-    const r = await gemini([{text: sumPrompt($('fmt').value, $('kode').value.trim(), t)}]);
-    setPaper('INSTANSI: ' + INST[curInst].name + '\nKODE KLIEN: ' + ($('kode').value.trim() || '-') + '\nTANGGAL: ' + $('tgl').value + '\nFORMAT: ' + $('fmt').value + '\n\n' + r); $('exp').hidden = false; editingId = null; updSave();
+    const r = await geminiStream([{text: sumPrompt($('fmt').value, $('kode').value.trim(), t)}], txt => { setPaper(head + txt); $('rc').scrollIntoView({block: 'nearest'}); });
+    setPaper(head + r + (lastFinish === 'MAX_TOKENS' ? '\n\n[Peringatan: rangkuman terpotong karena batas panjang. Buat ulang dengan tingkat detail lebih ringkas.]' : ''));
+    $('exp').hidden = false; editingId = null; updSave();
   } catch (e) { $('out').textContent = 'Gagal: ' + e.message; }
-  b.disabled = false; b.textContent = 'Buat rangkuman';
+  b.disabled = false; b.textContent = '📝 Buat rangkuman';
 };
 
 // ===== Pratinjau & ekspor =====
-const LBL = /^(\s*)((?:[DSOAP] \([^)]*\))|Poin tindak lanjut|Catatan risiko|INSTANSI|KODE KLIEN|TANGGAL|FORMAT)(:?)/i;
+const LBL = /^(\s*)((?:[DSOAP] \([^)]*\))|Poin tindak lanjut|Catatan risiko|INSTANSI|KODE KLIEN|TANGGAL|FORMAT|(?:Keluhan utama|Pemicu dan perjalanan|Gejala|Konteks kehidupan|Pernyataan penting klien|Observasi percakapan|Tema dan dinamika|Pola pikir dan koping|Kekuatan dan sumber daya|Hipotesis sementara|Respons terhadap intervensi|Risiko|Intervensi dalam sesi|Tugas untuk klien|Rencana sesi berikutnya|Perlu dikonfirmasi|Rujukan atau pihak terkait)(?=:))(:?)/i;
 const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const xesc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const toHTML = t => t.split('\n').map(l => { const m = l.match(LBL); return m ? esc(m[1]) + '<b>' + esc(m[2] + m[3]) + '</b>' + esc(l.slice(m[0].length)) : esc(l); }).join('\n');
@@ -1036,6 +1085,107 @@ $('hfile').onchange = async e => {
 };
 
 updSave(); renderHist();
+
+// ===== Bahasa percakapan & panduan istilah Banjar =====
+const DEFAULT_GLOSS = `# PANDUAN TRANSKRIPSI KONSELING PSIKOLOGI (BAHASA BANJAR - LENGKAP)
+
+Gunakan panduan ini untuk mentranskrip rekaman sesi konseling psikologi berbahasa Banjar (Banjar Kuala & Banjar Hulu). Pertahankan kata asli bahasa Banjar beserta partikel emosinya agar nuansa psikologis klien tidak hilang.
+
+## 1. Sapaan, Panggilan & Relasi Sosial
+- Ulun = Saya / Aku (sopan/hormat)
+- Aku = Aku (akrab/sebaya/anak-anak)
+- Pian = Anda / Bapak / Ibu (sopan)
+- Ikam / Nyawa = Kamu (akrab/sebaya/kasar saat marah)
+- Sidin = Beliau (orang tua, mertua, atasan, tokoh agama/masyarakat)
+- Inya = Dia
+- Bubuhannya = Mereka / Orang-orang sekitar
+- Kuitan = Orang tua (ayah & ibu)
+- Abah / Kai = Ayah / Kakek
+- Uma / Mama / Nini = Ibu / Nenek
+- Mintuha = Mertua
+- Laki / Bini = Suami / Istri
+- Dangsanak = Saudara kandung
+- Badingsanak = Bersaudara
+- Sepupu / Sapupu = Sepupu
+- Kakanakan = Anak-anak
+- Kakawanan = Teman-teman
+
+## 2. Spektrum Emosi & Suasana Hati (Mood & Affect)
+- Sarik / Sarikan = Marah / Pemarah
+- Sangkal = Kesal / Dongkol / Jengkel yang dipendam
+- Muak / Juhut = Muak / Bosan / Jengah
+- Pusang = Bingung / Gelisah / Pusing memikirkan masalah
+- Takutan = Takut / Cemas / Khawatir
+- Gair = Ngeri / Takut / Cemas akan sesuatu yang buruk terjadi
+- Supan = Malu / Minder / Rendah diri
+- Maras = Kasihan / Iba / Sedih melihat keadaan
+- Pilu / Rawan hati = Terharu / Tersentuh / Sedih mendalam
+- Hancur hati = Patah hati / Sangat kecewa
+- Kada karuan rasa = Perasaan kacau / Hampa / Tidak menentu
+- Hati kada nyaman = Tidak tenang / Mengganjal / Gelisah
+- Hati panas = Emosi memuncak / Mudah tersinggung
+- Hati dingin = Tenang / Sabar / Ikhlas
+- Tabulik-bulik = Terngiang-ngiang / Terus teringat (ruminasi/trauma)
+- Tapikir tarus = Terpikirkan terus-menerus (overthinking)
+- Baungut = Melamun / Termenung kosong
+- Basungkup = Mengurung diri / Menarik diri dari lingkungan (isolasi)
+- Kada purun = Tidak tega / Merasa bersalah jika menolak (people pleaser)
+- Barasa bersalah = Merasa bersalah
+
+## 3. Keluhan Fisik, Psikosomatis & Energi
+- Uyuh = Capek / Lelah (fisik maupun mental/burnout)
+- Uyuh banar hati = Sangat lelah secara emosional/batin
+- Awak lamah = Badan lemas / Tidak bertenaga (lesu/depresif)
+- Awak marista = Badan terasa sakit/menderita karena beban pikiran
+- Garing = Sakit
+- Paning / Pusing = Sakit kepala / Pusing
+- Manggitir = Gemetar (reaksi cemas/panik/takut)
+- Badarau / Badabar = Jantung berdebar kencang (palpitasi/cemas)
+- Sesak / Sasadak = Sesak napas / Dada terasa penuh
+- Muak / Mual = Mual karena cemas atau jijik
+- Kada kawa guring = Tidak bisa tidur (insomnia)
+- Guring kada nyenyak = Tidur gelisah / Sering terbangun
+- Mangigau = Mengigau / Mimpi buruk
+- Kada nafsu makan = Tidak nafsu makan
+- Lambung naik / Mag = Sakit lambung yang dipicu stres
+
+## 4. Konflik, Trauma & Perilaku Interpersonal
+- Bakalahi = Bertengkar / Cekcok
+- Bacakut = Bertengkar hebat / Berkelahi fisik atau mulut
+- Banyaki = Dimarahi / Dibentak / Dihardik
+- Diulah-ulah = Diperlakukan tidak adil / Direndahkan / Dikerjai
+- Disambati = Diejek / Dihina / Digosipkan
+- Dipadahakan = Dituduh / Dikatakan (sering dalam konteks negatif)
+- Dibunguli = Dibohongi / Ditipu / Dimanipulasi
+- Ditinggalakan = Ditinggalkan / Diabaikan
+- Bapisah = Berpisah / Bercerai
+- Batangkar = Berdebat keras / Bersitegang
+- Manampar / Manapak = Menampar`;
+function langBlock(summary) {
+  if ($('lang').value !== 'banjar') return '';
+  const gl = $('gloss').value.trim().slice(0, 30000);
+  const rule = summary
+    ? 'Bahasa: percakapan memakai bahasa Indonesia bercampur Banjar. Untuk kata Banjar yang bermakna psikologis, pertahankan kata aslinya dalam kutipan dan beri arti Indonesia dalam kurung saat pertama muncul, mis. "sarik (marah)". Gunakan panduan istilah hanya untuk memahami makna dan nuansa emosi, bukan untuk menambah informasi yang tidak diucapkan klien.'
+    : 'BAHASA: percakapan memakai bahasa Indonesia bercampur bahasa Banjar (Banjar Kuala dan Banjar Hulu). Tulis kata Banjar persis sebagaimana diucapkan; jangan diterjemahkan atau diindonesiakan, dan pertahankan partikel emosinya. Gunakan panduan istilah di bawah sebagai acuan ejaan dan makna. Untuk kata Banjar yang tidak ada di panduan, tulis sesuai bunyi dan beri [tidak jelas] bila ragu. Jangan menulis arti kata di dalam transkrip.';
+  return rule + '\n\nPANDUAN ISTILAH BANJAR:\n' + gl + '\n\n';
+}
+function glossCount() { const n = $('gloss').value.length; $('glosscnt').textContent = n + ' karakter' + (n > 30000 ? ' (melebihi 30.000, sisanya tidak dikirim)' : ''); }
+function applyLang() {
+  const b = $('lang').value === 'banjar';
+  $('glossbox').hidden = !b; $('livebanjar').hidden = !b;
+  try { localStorage.setItem('lang', $('lang').value); } catch (e) {}
+}
+$('lang').onchange = () => { applyLang(); if (state === 'idle' && hasSR()) $('live').checked = $('lang').value !== 'banjar'; render(); };
+$('gloss').addEventListener('input', () => { try { localStorage.setItem('gloss', $('gloss').value); } catch (e) {} glossCount(); });
+$('glossreset').onclick = () => { if (confirm('Kembalikan panduan istilah ke versi bawaan? Perubahan Anda akan hilang.')) { $('gloss').value = DEFAULT_GLOSS; try { localStorage.setItem('gloss', DEFAULT_GLOSS); } catch (e) {} glossCount(); } };
+(() => {
+  let g = '', l = 'banjar';
+  try { g = localStorage.getItem('gloss') || ''; l = localStorage.getItem('lang') || 'banjar'; } catch (e) {}
+  $('gloss').value = g || DEFAULT_GLOSS; $('lang').value = l === 'id' ? 'id' : 'banjar';
+  applyLang(); glossCount();
+  if ($('lang').value === 'banjar' && hasSR()) $('live').checked = false;
+  render();
+})();
 </script>
 </body>
 </html>
