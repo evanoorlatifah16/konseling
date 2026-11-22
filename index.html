@@ -167,7 +167,6 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 <div class="mut" id="ast">Rekaman otomatis berlanjut ke bagian baru saat mencapai batas ukuran. Layar dijaga menyala saat merekam; jangan kunci layar atau pindah aplikasi.</div>
 <div id="segs"></div>
 <div class="bar">
-<button id="tx" disabled>✨ Transkrip dengan Gemini (pisahkan suara)</button>
 <button id="dlaudio" class="sec" hidden>⬇ Unduh audio</button>
 <button id="wipe" class="sec" hidden>Hapus audio dari memori</button>
 </div>
@@ -176,8 +175,8 @@ details summary{cursor:pointer;font-weight:700;color:var(--mut)}
 <section class="card">
 <div class="step"><span>3</span>Transkrip (bisa diedit)</div>
 <textarea id="tr" placeholder="Hasil transkrip dengan label Psikolog / Klien muncul di sini."></textarea>
-<div class="bar"><button id="retx" class="sec" disabled>↻ Transkrip ulang dengan Gemini (pisahkan suara)</button></div>
-<div class="mut" id="retxnote">Transkrip ulang memerlukan audio yang masih ada di memori. Rekam atau unggah audio terlebih dulu.</div>
+<div class="bar"><button id="tx" disabled>✨ Transkrip dengan Gemini (pisahkan suara)</button></div>
+<div class="mut" id="retxnote">Tombol ini aktif setelah ada audio (rekaman atau unggahan) yang masih tersimpan di memori. Bisa ditekan lagi untuk mengulang transkrip dari audio yang sama.</div>
 <div class="bar">
 <button id="swap" class="sec">⇄ Tukar label Psikolog/Klien</button>
 <button id="sum">📝 Buat rangkuman</button>
@@ -313,7 +312,6 @@ function render() {
   $('tx').disabled = !(idle && segments.length);
   $('wipe').hidden = !(idle && segments.length);
   $('dlaudio').hidden = !(idle && segments.length);
-  $('retx').disabled = !(idle && segments.length);
   $('retxnote').hidden = !(idle && !segments.length);
   $('spk').hidden = !(state !== 'idle' && hasSR() && $('live').checked);
 }
@@ -438,7 +436,7 @@ function setProg(pct) {
 }
 $('tx').onclick = async () => {
   if ($('tr').value.trim() && !confirm('Transkrip yang ada akan diganti dengan hasil Gemini. Lanjutkan?')) return;
-  const b = $('tx'); b.disabled = true; $('retx').disabled = true;
+  const b = $('tx'); b.disabled = true;
   $('prog').hidden = false; $('cancel').hidden = false; setProg(0); lockScreen();
   const totalDur = segments.reduce((a, g) => a + g.dur, 0);
   const t0 = Date.now();
@@ -833,7 +831,6 @@ $('dlaudio').onclick = async () => {
     $('ast').textContent = 'Audio diunduh. Rekaman berisi percakapan klien: simpan di tempat aman dan hapus bila tidak diperlukan.';
   } catch (e) { $('ast').textContent = 'Gagal mengunduh audio: ' + e.message; }
 };
-$('retx').onclick = () => $('tx').click();
 render();
 
 // ===== Files API (audio > 14 MB) =====
